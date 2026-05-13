@@ -223,29 +223,9 @@
       cloudStatus = "ok";
       render();
     } else if (CLOUD_ENABLED) {
-      cloudStatus = cloudData === null ? "error" : "ok";
+      cloudStatus = "ok";
     }
     updateSyncDot();
-  }
-
-  async function cloudLoad() {
-    if (!CLOUD_ENABLED) return null;
-    try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/app_state?id=eq.${encodeURIComponent(CLOUD_ROW_ID)}&select=data`,
-        {
-          headers: {
-            "apikey": SUPABASE_ANON_KEY,
-            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-          },
-        }
-      );
-      if (!res.ok) return null;
-      const rows = await res.json();
-      return rows[0]?.data ?? null;
-    } catch {
-      return null;
-    }
   }
   /* ─────────────────────────────────────────────────────────────────────── */
 
