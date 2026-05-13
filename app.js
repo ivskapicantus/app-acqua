@@ -199,10 +199,12 @@
           },
         }
       );
-      if (!res.ok) return null;
+      if (!res.ok) { console.warn("cloudLoad HTTP", res.status); return null; }
       const rows = await res.json();
+      console.log("cloudLoad rows:", JSON.stringify(rows).slice(0, 200));
       return rows[0]?.data ?? null;
-    } catch {
+    } catch (e) {
+      console.error("cloudLoad error:", e);
       return null;
     }
   }
@@ -210,18 +212,19 @@
   // Aplica datos de la nube al estado local y re-renderiza
   async function syncFromCloud() {
     const cloudData = await cloudLoad();
-    if (cloudData && typeof cloudData === "object") {
+    if (cloudData && Array.isArray(cloudData.students)) {
       state = {
         version:      1,
         currentMonth: cloudData.currentMonth || state.currentMonth,
         settings:     { businessName: DEFAULT_BUSINESS, ...(cloudData.settings || {}) },
-        students:     Array.isArray(cloudData.students)   ? cloudData.students   : (state.students   || []),
-        attendance:   Array.isArray(cloudData.attendance) ? cloudData.attendance : (state.attendance || []),
-        events:       Array.isArray(cloudData.events)     ? cloudData.events     : (state.events     || []),
+        students:     Array.isArray(cloudData.students)   ? cloudData.students   : [],
+        attendance:   Array.isArray(cloudData.attendance) ? cloudData.attendance : [],
+        events:       Array.isArray(cloudData.events)     ? cloudData.events     : [],
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       cloudStatus = "ok";
-      render();
+      // No renderizar si el usuario está llenando un formulario
+      if (!studentsFormVisible && !editingStudentId) render();
     } else if (CLOUD_ENABLED) {
       cloudStatus = "ok";
     }
