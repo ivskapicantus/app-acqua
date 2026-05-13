@@ -6,7 +6,7 @@
      1. Crea un proyecto gratis en https://supabase.com
      2. En SQL Editor ejecuta el script de acquacontrol-setup.sql
      3. Ve a Project Settings → API y pega los valores aquí              */
-  const SUPABASE_URL      = "https://sokfsbzzmrpijkmlpmag.supabase.co/rest/v1/"
+  const SUPABASE_URL      = "https://sokfsbzzmrpijkmlpmag.supabase.co"
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNva2ZzYnp6bXJwaWprbWxwbWFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MzYyNDgsImV4cCI6MjA5NDIxMjI0OH0.bor86ohZ-u9sUl_Lr85vDHhaw7rMyCRuNiX1ZAHVSaM";
   const CLOUD_ROW_ID      = "acquacontrol-principal"; // ID único de tu academia
   const CLOUD_ENABLED     = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
