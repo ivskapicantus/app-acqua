@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ACQUA NATACIÓN | Control de clases</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <img class="brand-logo" src="assets/logo-acqua-blanco.png" alt="">
+        </span>
+        <div>
+          <h1 class="sr-only">ACQUA NATACIÓN</h1>
+          <p id="businessNameLabel">Control de natación</p>
+        </div>
+      </div>
+      <label class="month-picker">
+        <span>Mes operativo</span>
+        <input id="globalMonth" type="month">
+      </label>
+      <span id="syncDot" class="sync-dot sync-off" title="Sin nube configurada">●</span>
+    </header>
+
+    <nav class="tabs" aria-label="Secciones principales">
+      <button class="tab is-active" type="button" data-view="dashboard">Panel</button>
+      <button class="tab" type="button" data-view="students">Alumnos</button>
+      <button class="tab" type="button" data-view="checkin">Check-in QR</button>
+      <button class="tab" type="button" data-view="cards">Carnets QR</button>
+      <button class="tab" type="button" data-view="events">Eventos</button>
+      <button class="tab" type="button" data-view="reports">Reportes</button>
+      <button class="tab" type="button" data-view="settings">Ajustes</button>
+    </nav>
+
+    <main id="app" class="app-shell" aria-live="polite"></main>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
