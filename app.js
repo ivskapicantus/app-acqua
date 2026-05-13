@@ -6,7 +6,7 @@
      1. Crea un proyecto gratis en https://supabase.com
      2. En SQL Editor ejecuta el script de acquacontrol-setup.sql
      3. Ve a Project Settings → API y pega los valores aquí              */
-  const SUPABASE_URL = "https://sokfsbzzmrpijkmlpmag.supabase.co/rest/v1/"
+  const SUPABASE_URL      = "https://sokfsbzzmrpijkmlpmag.supabase.co/rest/v1/"
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNva2ZzYnp6bXJwaWprbWxwbWFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MzYyNDgsImV4cCI6MjA5NDIxMjI0OH0.bor86ohZ-u9sUl_Lr85vDHhaw7rMyCRuNiX1ZAHVSaM";
   const CLOUD_ROW_ID      = "acquacontrol-principal"; // ID único de tu academia
   const CLOUD_ENABLED     = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
@@ -154,57 +154,78 @@
     cloudStatus = "syncing";
     updateSyncDot();
     try {
-      // 1. Intenta actualizar la fila existente (PATCH)
-      const patchRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/app_state?id=eq.${encodeURIComponent(CLOUD_ROW_ID)}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            "apikey": SUPABASE_ANON_KEY,
-            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-            "Prefer": "return=representation",
-          },
-          body: JSON.stringify({ data: snapshot, saved_at: new Date().toISOString() }),
-        }
-      );
-
-      if (!patchRes.ok) throw new Error(`PATCH ${patchRes.status}`);
-
-      const updated = await patchRes.json();
-
-      // 2. Si PATCH no encontró la fila, la crea (POST)
-      if (Array.isArray(updated) && updated.length === 0) {
-        const postRes = await fetch(`${SUPABASE_URL}/rest/v1/app_state`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "apikey": SUPABASE_ANON_KEY,
-            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-            "Prefer": "return=minimal",
-          },
-          body: JSON.stringify({
-            id: CLOUD_ROW_ID,
-            data: snapshot,
-            saved_at: new Date().toISOString(),
-          }),
-        });
-        if (!postRes.ok) throw new Error(`POST ${postRes.status}`);
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/app_state`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey":         SUPABASE_ANON_KEY,
+          "Authorization":  `Bearer ${SUPABASE_ANON_KEY}`,
+          "Prefer":         "resolution=merge-duplicates,return=minimal",
+        },
+        body: JSON.stringify({
+          id:       CLOUD_ROW_ID,
+          data:     snapshot,
+          saved_at: new Date().toISOString(),
+        }),
+      });
+      if (!res.ok) {
+        const msg = await res.text().catch(() => res.status);
+        throw new Error(msg);
       }
-
       cloudStatus = "ok";
     } catch (err) {
-      console.error("cloudSave error:", err);
+      console.error("cloudSave:", err);
       cloudStatus = "error";
     }
     updateSyncDot();
   }
 
-  // Debounce: agrupa guardados rápidos en uno solo (800 ms de espera)
   let _cloudSaveTimer = null;
   function debouncedCloudSave(snapshot) {
     clearTimeout(_cloudSaveTimer);
     _cloudSaveTimer = setTimeout(() => cloudSave(snapshot), 800);
+  }
+
+  async function cloudLoad() {
+    if (!CLOUD_ENABLED) return null;
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/app_state?id=eq.${encodeURIComponent(CLOUD_ROW_ID)}&select=data`,
+        {
+          cache: "no-store",
+          headers: {
+            "apikey":        SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+        }
+      );
+      if (!res.ok) return null;
+      const rows = await res.json();
+      return rows[0]?.data ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Aplica datos de la nube al estado local y re-renderiza
+  async function syncFromCloud() {
+    const cloudData = await cloudLoad();
+    if (cloudData && Array.isArray(cloudData.students)) {
+      state = {
+        version:      1,
+        currentMonth: cloudData.currentMonth || state.currentMonth,
+        settings:     { businessName: DEFAULT_BUSINESS, ...(cloudData.settings || {}) },
+        students:     Array.isArray(cloudData.students)   ? cloudData.students   : [],
+        attendance:   Array.isArray(cloudData.attendance) ? cloudData.attendance : [],
+        events:       Array.isArray(cloudData.events)     ? cloudData.events     : [],
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      cloudStatus = "ok";
+      render();
+    } else if (CLOUD_ENABLED) {
+      cloudStatus = cloudData === null ? "error" : "ok";
+    }
+    updateSyncDot();
   }
 
   async function cloudLoad() {
@@ -2405,34 +2426,22 @@
     return result;
   }
 
-  /* ─── Arranque ──────────────────────────────────────────────────────────
-     1. Muestra datos locales de inmediato (app usable sin internet)
-     2. Carga desde Supabase en paralelo; si hay datos más recientes, actualiza */
+  /* ─── Arranque ───────────────────────────────────────────────────────────
+     1. Muestra datos locales de inmediato
+     2. Carga desde Supabase y actualiza si hay datos más recientes         */
   render();
   updateSyncDot();
+  syncFromCloud();
 
+  // Sincroniza cuando el usuario vuelve a la pestaña (desde otro dispositivo)
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && CLOUD_ENABLED) {
+      syncFromCloud();
+    }
+  });
+
+  // Sondeo cada 30 segundos para detectar cambios de otros dispositivos
   if (CLOUD_ENABLED) {
-    cloudLoad().then((cloudData) => {
-      if (cloudData && Array.isArray(cloudData.students)) {
-        // Supabase es la fuente de verdad: reemplaza estado local
-        state = {
-          version: 1,
-          currentMonth: cloudData.currentMonth || state.currentMonth,
-          settings: { businessName: DEFAULT_BUSINESS, ...(cloudData.settings || {}) },
-          students:   Array.isArray(cloudData.students)   ? cloudData.students   : [],
-          attendance: Array.isArray(cloudData.attendance) ? cloudData.attendance : [],
-          events:     Array.isArray(cloudData.events)     ? cloudData.events     : [],
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        cloudStatus = "ok";
-        render();
-      } else {
-        cloudStatus = state.students.length > 0 ? "ok" : "ok";
-      }
-      updateSyncDot();
-    }).catch(() => {
-      cloudStatus = "error";
-      updateSyncDot();
-    });
+    setInterval(syncFromCloud, 30_000);
   }
 })();
