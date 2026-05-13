@@ -210,14 +210,14 @@
   // Aplica datos de la nube al estado local y re-renderiza
   async function syncFromCloud() {
     const cloudData = await cloudLoad();
-    if (cloudData && Array.isArray(cloudData.students)) {
+    if (cloudData && typeof cloudData === "object") {
       state = {
         version:      1,
         currentMonth: cloudData.currentMonth || state.currentMonth,
         settings:     { businessName: DEFAULT_BUSINESS, ...(cloudData.settings || {}) },
-        students:     Array.isArray(cloudData.students)   ? cloudData.students   : [],
-        attendance:   Array.isArray(cloudData.attendance) ? cloudData.attendance : [],
-        events:       Array.isArray(cloudData.events)     ? cloudData.events     : [],
+        students:     Array.isArray(cloudData.students)   ? cloudData.students   : (state.students   || []),
+        attendance:   Array.isArray(cloudData.attendance) ? cloudData.attendance : (state.attendance || []),
+        events:       Array.isArray(cloudData.events)     ? cloudData.events     : (state.events     || []),
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       cloudStatus = "ok";
