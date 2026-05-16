@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pagar plan — ACQUA Natación</title>
+  <style>
+  /* ─── Tokens (idénticos a styles.css) ────────────────────────────────────── */
+  :root {
+    color-scheme: light;
+    --bg:             #F2F2F7;
+    --surface:        #FFFFFF;
+    --surface-glass:  rgba(255,255,255,0.82);
+    --surface-warm:   #FFF5EA;
+    --ink:            #1C1C1E;
+    --ink-2:          #3A3A3C;
+    --muted:          #8E8E93;
+    --muted-2:        #AEAEB2;
+    --line:           rgba(60,60,67,0.13);
+    --line-opaque:    #E5E5EA;
+    --primary:        #0077B6;
+    --primary-dark:   #005F92;
+    --primary-deep:   #003D5E;
+    --primary-tint:   rgba(0,119,182,0.1);
+    --accent:         #FF9F0A;
+    --accent-dark:    #D4800A;
+    --success:        #34C759;
+    --success-tint:   rgba(52,199,89,0.12);
+    --warning:        #FF9500;
+    --danger:         #FF3B30;
+    --danger-tint:    rgba(255,59,48,0.12);
+    --shadow:     0 2px 6px rgba(0,0,0,0.04), 0 12px 40px rgba(0,0,0,0.08);
+    --shadow-sm:  0 1px 3px rgba(0,0,0,0.04), 0 4px 14px rgba(0,0,0,0.06);
+    --shadow-btn: 0 1px 2px rgba(0,0,0,0.06), 0 4px 12px rgba(0,119,182,0.2);
+    --radius:         16px;
+    --radius-sm:      10px;
+    --radius-xs:      8px;
+    --control-radius: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); }
+  button { cursor: pointer; font: inherit; }
+  input, select { font: inherit; }
+
+  /* ─── Topbar ── idéntico al de la app ───────────────────────────────────── */
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 20px;
+    justify-content: space-between;
+    padding: 14px clamp(16px, 4vw, 44px);
+    background: rgba(0, 42, 62, 0.96);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 8px 32px rgba(0,0,0,0.2);
+    color: #fff;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-logo { display: block; height: auto; max-height: 46px; max-width: 152px; object-fit: contain; }
+  .brand p { margin: 2px 0 0; font-size: 0.82rem; font-weight: 500; color: rgba(255,255,255,0.7); }
+
+  .secure-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.75rem; font-weight: 600; color: var(--success);
+    background: rgba(52,199,89,0.15); border: 1px solid rgba(52,199,89,0.3);
+    border-radius: 999px; padding: 5px 12px;
+  }
+  .secure-badge svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+  /* ─── Steps bar ─────────────────────────────────────────────────────────── */
+  .steps-bar {
+    position: sticky; top: 75px; z-index: 19;
+    display: flex; align-items: center; justify-content: center; gap: 0;
+    padding: 12px clamp(12px, 4vw, 38px);
+    background: rgba(242,242,247,0.95);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid var(--line);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .steps-bar::-webkit-scrollbar { display: none; }
+
+  .step-item { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; max-width: 100px; }
+  .step-circle {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid var(--line-opaque);
+    background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 600; color: var(--muted);
+    transition: all .25s;
+  }
+  .step-item.active .step-circle { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 0 0 4px var(--primary-tint); }
+  .step-item.done .step-circle { background: var(--success); border-color: var(--success); color: #fff; }
+  .step-label { font-size: 0.65rem; font-weight: 600; color: var(--muted); text-align: center; letter-spacing: 0.02em; white-space: nowrap; }
+  .step-item.active .step-label { color: var(--primary); }
+  .step-item.done .step-label { color: var(--success); }
+  .step-line { flex: 1; height: 2px; background: var(--line-opaque); max-width: 48px; margin-bottom: 18px; transition: background .25s; }
+  .step-line.done { background: var(--success); }
+
+  /* ─── Shell ─────────────────────────────────────────────────────────────── */
+  .app-shell { margin: 0 auto; max-width: 860px; padding: 28px clamp(14px, 4vw, 36px) 64px; }
+
+  /* ─── View header ── mismo que la app ───────────────────────────────────── */
+  .view-header { display: flex; align-items: flex-start; gap: 16px; justify-content: space-between; margin-bottom: 20px; }
+  .view-header h2 { margin: 0; font-size: 1.9rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; }
+  .view-header p { margin: 6px 0 0; color: var(--muted); font-size: 0.9rem; }
+
+  /* ─── Panel ─── mismo que la app ────────────────────────────────────────── */
+  .panel {
+    background: var(--surface-glass);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+  .panel-header { display: flex; align-items: center; gap: 12px; justify-content: space-between; margin-bottom: 16px; }
+  .panel-header h3 { margin: 0; font-size: 1.05rem; font-weight: 600; letter-spacing: -0.02em; }
+  .panel-header p { margin: 3px 0 0; color: var(--muted); font-size: 0.82rem; }
+
+  /* ─── Notice ─────────────────────────────────────────────────────────────── */
+  .notice {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: var(--surface-warm); border: 1px solid var(--accent);
+    border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 16px;
+    font-size: 0.82rem; color: #92400e;
+  }
+  .notice strong { color: #78350f; }
+
+  /* ─── Category cards ─────────────────────────────────────────────────────── */
+  .cat-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); }
+
+  .cat-card {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 1.4rem 1rem;
+    background: var(--bg); border: 2px solid transparent;
+    border-radius: var(--radius); cursor: pointer;
+    transition: all .2s ease; text-align: center;
+  }
+  .cat-card:hover { border-color: var(--primary); background: var(--primary-tint); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+  .cat-emoji { font-size: 2.2rem; }
+  .cat-name { font-size: 0.875rem; font-weight: 600; color: var(--ink); line-height: 1.3; }
+  .cat-desc { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+  /* ─── Plan cards ─────────────────────────────────────────────────────────── */
+  .plan-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); }
+
+  .plan-card {
+    position: relative; text-align: center;
+    padding: 1.3rem 0.9rem;
+    background: var(--bg); border: 2px solid transparent;
+    border-radius: var(--radius); cursor: pointer;
+    transition: all .2s ease; overflow: hidden;
+  }
+  .plan-card:hover, .plan-card.popular { border-color: var(--primary); background: var(--primary-tint); transform: translateY(-2px); }
+  .popular-badge {
+    position: absolute; top: 0; right: 0;
+    background: var(--accent); color: #fff;
+    font-size: 0.58rem; font-weight: 700; letter-spacing: 0.06em;
+    padding: 2px 8px; border-radius: 0 var(--radius) 0 var(--radius-xs);
+  }
+  .plan-nombre { font-weight: 700; font-size: 0.95rem; color: var(--ink); margin-bottom: 6px; }
+  .plan-precio { font-size: 1.3rem; font-weight: 700; color: var(--primary); letter-spacing: -0.02em; }
+  .plan-dias { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+
+  /* ─── Resumen banner ─────────────────────────────────────────────────────── */
+  .resumen-banner {
+    background: var(--primary-tint); border: 1px solid rgba(0,119,182,0.2);
+    border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 16px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+    font-size: 0.88rem;
+  }
+  .resumen-banner strong { font-size: 1.25rem; color: var(--primary); font-weight: 700; letter-spacing: -0.02em; }
+
+  /* ─── Fields ── mismo que la app ─────────────────────────────────────────── */
+  .field-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .field-grid .wide { grid-column: 1 / -1; }
+  @media (max-width: 520px) { .field-grid { grid-template-columns: 1fr; } }
+
+  label.field { display: grid; gap: 6px; font-size: 0.78rem; font-weight: 600; color: var(--muted); letter-spacing: 0.01em; }
+  .field input {
+    width: 100%; min-height: 42px; padding: 9px 13px;
+    background: var(--bg); border: 1px solid var(--line-opaque);
+    border-radius: var(--control-radius); color: var(--ink); font-size: 0.94rem;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    outline: none;
+  }
+  .field input:focus { border-color: var(--primary); background: var(--surface); box-shadow: 0 0 0 4px rgba(0,119,182,0.14); }
+
+  /* ─── Buttons ── mismo que la app ────────────────────────────────────────── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 7px; min-height: 38px; padding: 8px 16px;
+    font-size: 0.875rem; font-weight: 600; letter-spacing: -0.01em;
+    white-space: nowrap; background: rgba(0,119,182,0.09);
+    border: 0; border-radius: 999px; color: var(--primary);
+    transition: background 140ms ease, transform 120ms ease, box-shadow 140ms ease;
+  }
+  .btn:hover { background: rgba(0,119,182,0.15); transform: translateY(-0.5px); }
+  .btn.primary { background: var(--primary); color: #fff; box-shadow: var(--shadow-btn); }
+  .btn.primary:hover { background: var(--primary-dark); box-shadow: 0 2px 6px rgba(0,0,0,0.06), 0 8px 24px rgba(0,119,182,0.32); }
+  .btn.ghost { background: transparent; color: var(--muted); }
+  .btn.ghost:hover { background: var(--bg); color: var(--ink); }
+  .btn svg { flex: 0 0 auto; width: 16px; height: 16px; stroke-width: 2.2px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
+
+  .split-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+
+  /* ─── Payment methods ────────────────────────────────────────────────────── */
+  .pay-methods { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .pay-badge { padding: 5px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; border: 1.5px solid; }
+  .pay-badge.nequi  { background: #f5eeff; border-color: #9333ea; color: #7c3aed; }
+  .pay-badge.pse    { background: var(--primary-tint); border-color: var(--primary); color: var(--primary-dark); }
+  .pay-badge.davi   { background: var(--surface-warm); border-color: var(--accent); color: var(--accent-dark); }
+  .pay-badge.tarjeta{ background: #f0fdf4; border-color: #22c55e; color: #166534; }
+
+  /* ─── Wompi placeholder ──────────────────────────────────────────────────── */
+  .wompi-placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; min-height: 160px; text-align: center;
+    border: 2px dashed var(--line-opaque); border-radius: var(--radius);
+    padding: 2rem; color: var(--muted); font-size: 0.88rem;
+  }
+
+  /* ─── Success ────────────────────────────────────────────────────────────── */
+  .success-wrap { text-align: center; padding: 2.5rem 1rem; }
+  .success-check {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--success), #16a34a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; color: #fff; margin: 0 auto 1rem;
+    box-shadow: 0 8px 24px rgba(52,199,89,0.3);
+  }
+  .success-wrap h3 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+  .success-wrap p { color: var(--muted); font-size: 0.92rem; line-height: 1.6; }
+
+  /* ─── Footer ─────────────────────────────────────────────────────────────── */
+  footer { text-align: center; padding: 2rem 1rem 3rem; color: var(--muted); font-size: 0.78rem; }
+  footer a { color: var(--primary); text-decoration: none; }
+
+  /* ─── Responsive ─────────────────────────────────────────────────────────── */
+  @media (max-width: 700px) {
+    .topbar { flex-wrap: wrap; gap: 10px; }
+    .steps-bar { top: 110px; }
+  }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR — idéntico al de la app -->
+<header class="topbar">
+  <div class="brand">
+    <img class="brand-logo" src="assets/logo-acqua-blanco.png" alt="ACQUA Natación"
+         onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+    <span style="display:none; font-size:1.4rem; font-weight:800; letter-spacing:0.1em; color:#fff">ACQUA</span>
+    <p>Pago de planes</p>
+  </div>
+  <div class="secure-badge">
+    <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Pago seguro
+  </div>
+</header>
+
+<!-- STEPS BAR -->
+<nav class="steps-bar" id="stepsBar">
+  <div class="step-item active" id="si1"><div class="step-circle">1</div><div class="step-label">Categoría</div></div>
+  <div class="step-line" id="sl1"></div>
+  <div class="step-item" id="si2"><div class="step-circle">2</div><div class="step-label">Plan</div></div>
+  <div class="step-line" id="sl2"></div>
+  <div class="step-item" id="si3"><div class="step-circle">3</div><div class="step-label">Tus datos</div></div>
+  <div class="step-line" id="sl3"></div>
+  <div class="step-item" id="si4"><div class="step-circle">4</div><div class="step-label">Pago</div></div>
+</nav>
+
+<main class="app-shell">
+
+  <!-- AVISO DEMO -->
+  <div class="notice" id="demoNotice">
+    <span>🚧</span>
+    <p><strong>Modo demo —</strong> Cuando se active la cuenta Wompi, esta página procesará pagos reales con Nequi, PSE, Daviplata y tarjetas. El flujo completo ya está listo.</p>
+  </div>
+
+  <!-- PASO 1: CATEGORÍA -->
+  <div id="step1">
+    <div class="view-header">
+      <div>
+        <h2>¿Qué tipo de clase buscas?</h2>
+        <p>Selecciona tu categoría para ver los planes disponibles.</p>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="cat-grid">
+        <div class="cat-card" onclick="selCat('ninos')">
+          <span class="cat-emoji">🏊‍♂️</span>
+          <span class="cat-name">Niños 4–16 años</span>
+          <span class="cat-desc">Clases grupales · 55 min</span>
+        </div>
+        <div class="cat-card" onclick="selCat('adultos')">
+          <span class="cat-emoji">🏋️‍♀️</span>
+          <span class="cat-name">Adultos grupales</span>
+          <span class="cat-desc">Clases grupales · 55 min</span>
+        </div>
+        <div class="cat-card" onclick="selCat('libre')">
+          <span class="cat-emoji">🌊</span>
+          <span class="cat-name">Práctica libre adultos</span>
+          <span class="cat-desc">50 min · solo mayores de edad</span>
+        </div>
+        <div class="cat-card" onclick="selCat('matronatacion')">
+          <span class="cat-emoji">👶</span>
+          <span class="cat-name">Matronatación baby</span>
+          <span class="cat-desc">Fin de semana · 55 min</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 2: PLANES -->
+  <div id="step2" style="display:none">
+    <div class="view-header">
+      <div>
+        <h2 id="step2Title">Elige tu plan</h2>
+        <p id="step2Sub">Selecciona el plan que mejor se adapte a ti.</p>
+      </div>
+      <div class="toolbar">
+        <button class="btn ghost" onclick="goTo(1)">
+          <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+          Volver
+        </button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="plan-grid" id="planGrid"></div>
+    </div>
+  </div>
+
+  <!-- PASO 3: DATOS -->
+  <div id="step3" style="display:none">
+    <div class="view-header">
+      <div>
+        <h2>Tus datos</h2>
+        <p>Necesitamos tus datos para confirmar el pago.</p>
+      </div>
+      <div class="toolbar">
+        <button class="btn ghost" onclick="goTo(2)">
+          <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+          Volver
+        </button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="resumen-banner" id="resumenBanner"></div>
+      <div class="field-grid">
+        <label class="field">
+          Nombre completo
+          <input type="text" id="inp-nombre" placeholder="Ej: María García" autocomplete="name">
+        </label>
+        <label class="field">
+          Teléfono / WhatsApp
+          <input type="tel" id="inp-tel" placeholder="321 000 0000" autocomplete="tel">
+        </label>
+        <label class="field">
+          Correo electrónico
+          <input type="email" id="inp-email" placeholder="tu@correo.com" autocomplete="email">
+        </label>
+        <label class="field">
+          Código de carnet (opcional)
+          <input type="text" id="inp-codigo" placeholder="AC-0001">
+        </label>
+      </div>
+      <div class="split-actions">
+        <button class="btn primary" onclick="irAPago()">
+          <svg viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
+          Continuar al pago
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 4: PAGO -->
+  <div id="step4" style="display:none">
+    <div class="view-header">
+      <div>
+        <h2>Pago seguro</h2>
+        <p>Elige tu método de pago preferido.</p>
+      </div>
+      <div class="toolbar">
+        <button class="btn ghost" onclick="goTo(3)">
+          <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+          Volver
+        </button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="pay-methods">
+        <span class="pay-badge nequi">💜 Nequi</span>
+        <span class="pay-badge pse">🏦 PSE</span>
+        <span class="pay-badge davi">🟠 Daviplata</span>
+        <span class="pay-badge tarjeta">💳 Tarjeta</span>
+      </div>
+
+      <!-- ── Aquí va Wompi cuando lleguen las llaves ──────────────────────────
+           Reemplaza el div .wompi-placeholder por este script:
+
+      <script
+        src="https://checkout.wompi.co/widget.js"
+        data-render="button"
+        data-public-key="pub_stagtest_TU_LLAVE_AQUI"
+        data-currency="COP"
+        data-amount-in-cents=""
+        data-reference=""
+        data-redirect-url="https://acquanatacion.com/pago-exitoso"
+      ></script>
+      ──────────────────────────────────────────────────────────────────────── -->
+
+      <div class="wompi-placeholder">
+        <span style="font-size:2.2rem">🔒</span>
+        <p>
+          <strong>Pago seguro con Wompi</strong><br>
+          Aquí aparecerá el botón de pago cuando se active la cuenta.<br>
+          <small style="color:var(--muted-2)">Encriptado y procesado por Wompi (Bancolombia).</small>
+        </p>
+      </div>
+      <div class="split-actions">
+        <button class="btn primary" onclick="simularPago()">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Pagar ahora (demo)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉXITO -->
+  <div id="stepOk" style="display:none">
+    <div class="panel">
+      <div class="success-wrap">
+        <div class="success-check">✓</div>
+        <h3>¡Pago exitoso!</h3>
+        <p>Tu plan ha sido registrado.<br>
+        Recibirás una confirmación por correo electrónico.<br><br>
+        <strong id="okNombre"></strong>, ya puedes presentar tu carnet en recepción.</p>
+        <div class="split-actions" style="justify-content:center;margin-top:1.5rem">
+          <button class="btn primary" onclick="reiniciar()">Realizar otro pago</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <p>ACQUA Natación · Chía, Cundinamarca · <a href="tel:3214041318">321 404 1318</a> · <a href="https://acquanatacion.com">acquanatacion.com</a></p>
+  <p style="margin-top:4px">Pagos procesados por <strong>Wompi</strong> · <a href="https://wompi.com" target="_blank" rel="noopener">wompi.com</a></p>
+</footer>
+
+<script>
+const PLANES = {
+  ninos: {
+    titulo: "Niños 4–16 años — Clases grupales",
+    vigencia: "35 días (plan 13 clases: 45 días)",
+    items: [
+      { nombre: "1 clase",   precio: 60000,  dias: "por clase"  },
+      { nombre: "4 clases",  precio: 167400, dias: "35 días"    },
+      { nombre: "9 clases",  precio: 322950, dias: "35 días", popular: true },
+      { nombre: "13 clases", precio: 426600, dias: "45 días"    },
+    ]
+  },
+  adultos: {
+    titulo: "Adultos — Clases grupales",
+    vigencia: "35 días (plan 13 clases: 45 días)",
+    items: [
+      { nombre: "1 clase",   precio: 60000,  dias: "por clase"  },
+      { nombre: "4 clases",  precio: 167400, dias: "35 días"    },
+      { nombre: "9 clases",  precio: 322950, dias: "35 días", popular: true },
+      { nombre: "13 clases", precio: 426600, dias: "45 días"    },
+    ]
+  },
+  libre: {
+    titulo: "Práctica libre adultos",
+    vigencia: "30 días",
+    items: [
+      { nombre: "1 práctica",  precio: 28000,  dias: "por práctica" },
+      { nombre: "8 prácticas", precio: 110000, dias: "30 días", popular: true },
+    ]
+  },
+  matronatacion: {
+    titulo: "Matronatación Baby",
+    vigencia: "35 días",
+    items: [
+      { nombre: "1 clase grupal",          precio: 80000,  dias: "por clase"  },
+      { nombre: "4 clases",                precio: 280800, dias: "35 días"    },
+      { nombre: "8 clases",                precio: 496800, dias: "35 días", popular: true },
+      { nombre: "4 clases personalizadas", precio: 400000, dias: "35 días"    },
+    ]
+  }
+};
+
+const CAT_EMOJI = { ninos:"🏊‍♂️", adultos:"🏋️‍♀️", libre:"🌊", matronatacion:"👶" };
+let st = { step: 1, cat: null, planNombre: null, planPrecio: 0, planDias: null };
+
+function fmt(n) { return "$ " + n.toLocaleString("es-CO"); }
+
+function updateSteps(step) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById("si" + i);
+    el.classList.remove("active", "done");
+    if (i < step) el.classList.add("done");
+    else if (i === step) el.classList.add("active");
+    if (i < 4) document.getElementById("sl" + i).classList.toggle("done", i < step);
+  }
+}
+
+function showOnly(id) {
+  ["step1","step2","step3","step4","stepOk"].forEach(s => {
+    document.getElementById(s).style.display = s === id ? "block" : "none";
+  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function goTo(step) {
+  st.step = step;
+  updateSteps(step);
+  showOnly("step" + step);
+}
+
+function selCat(cat) {
+  st.cat = cat;
+  const data = PLANES[cat];
+  document.getElementById("step2Title").textContent = data.titulo;
+  document.getElementById("step2Sub").textContent = "Vigencia: " + data.vigencia;
+  document.getElementById("planGrid").innerHTML = data.items.map(p => `
+    <div class="plan-card${p.popular ? " popular" : ""}"
+         onclick="selPlan('${p.nombre.replace(/'/g,"\\'")}', ${p.precio}, '${p.dias}')">
+      ${p.popular ? '<span class="popular-badge">POPULAR</span>' : ""}
+      <div class="plan-nombre">${p.nombre}</div>
+      <div class="plan-precio">${fmt(p.precio)}</div>
+      <div class="plan-dias">${p.dias}</div>
+    </div>
+  `).join("");
+  goTo(2);
+}
+
+function selPlan(nombre, precio, dias) {
+  st.planNombre = nombre;
+  st.planPrecio = precio;
+  st.planDias   = dias;
+  document.getElementById("resumenBanner").innerHTML =
+    `<span>${nombre} · ${dias}</span><strong>${fmt(precio)}</strong>`;
+  goTo(3);
+}
+
+function irAPago() {
+  const nombre = document.getElementById("inp-nombre").value.trim();
+  const email  = document.getElementById("inp-email").value.trim();
+  if (!nombre || !email) {
+    alert("Por favor ingresa tu nombre y correo electrónico.");
+    return;
+  }
+  goTo(4);
+}
+
+function simularPago() {
+  const nombre = document.getElementById("inp-nombre")?.value.trim() || "";
+  updateSteps(5);
+  showOnly("stepOk");
+  document.getElementById("okNombre").textContent = nombre;
+}
+
+function reiniciar() {
+  st = { step: 1, cat: null, planNombre: null, planPrecio: 0, planDias: null };
+  document.getElementById("inp-nombre").value = "";
+  document.getElementById("inp-tel").value    = "";
+  document.getElementById("inp-email").value  = "";
+  document.getElementById("inp-codigo").value = "";
+  goTo(1);
+}
+</script>
+</body>
+</html>
