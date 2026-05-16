@@ -224,7 +224,7 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       cloudStatus = "ok";
       // No renderizar si el usuario está llenando un formulario
-      if (!studentsFormVisible && !editingStudentId) render();
+      if (!studentsFormVisible && !editingStudentId && !(activeView === "pagos" && pagoStep === 3)) render();
     } else if (CLOUD_ENABLED) {
       cloudStatus = "ok";
     }
@@ -398,6 +398,7 @@
       events: renderEvents,
       reports: renderReports,
       settings: renderSettings,
+      pagos: renderPagos,
     };
     app.innerHTML = renderers[activeView]() + renderOverlay();
   }
@@ -1189,6 +1190,215 @@
       </section>
     `;
   }
+
+  // ── Pagos state ──────────────────────────────────────────────────────────
+  let pagoStep = 1;
+  let pagoState = { cat: null, planNombre: null, planPrecio: 0, planDias: null };
+
+  const PLANES_PAGOS = {
+    ninos: {
+      titulo: "Niños 4–16 años — Clases grupales",
+      emoji: "🏊‍♂️",
+      vigencia: "35 días (13 clases: 45 días)",
+      items: [
+        { nombre: "1 clase",   precio: 60000,  dias: "por clase"  },
+        { nombre: "4 clases",  precio: 167400, dias: "35 días"    },
+        { nombre: "9 clases",  precio: 322950, dias: "35 días", popular: true },
+        { nombre: "13 clases", precio: 426600, dias: "45 días"    },
+      ]
+    },
+    adultos: {
+      titulo: "Adultos — Clases grupales",
+      emoji: "🏋️",
+      vigencia: "35 días (13 clases: 45 días)",
+      items: [
+        { nombre: "1 clase",   precio: 60000,  dias: "por clase"  },
+        { nombre: "4 clases",  precio: 167400, dias: "35 días"    },
+        { nombre: "9 clases",  precio: 322950, dias: "35 días", popular: true },
+        { nombre: "13 clases", precio: 426600, dias: "45 días"    },
+      ]
+    },
+    libre: {
+      titulo: "Práctica libre adultos",
+      emoji: "🌊",
+      vigencia: "30 días",
+      items: [
+        { nombre: "1 práctica",  precio: 28000,  dias: "por práctica" },
+        { nombre: "8 prácticas", precio: 110000, dias: "30 días", popular: true },
+      ]
+    },
+    matronatacion: {
+      titulo: "Matronatación Baby",
+      emoji: "👶",
+      vigencia: "35 días",
+      items: [
+        { nombre: "1 clase grupal",          precio: 80000,  dias: "por clase"  },
+        { nombre: "4 clases",                precio: 280800, dias: "35 días"    },
+        { nombre: "8 clases",                precio: 496800, dias: "35 días", popular: true },
+        { nombre: "4 clases personalizadas", precio: 400000, dias: "35 días"    },
+      ]
+    }
+  };
+
+  function fmtPeso(n) {
+    return "$ " + n.toLocaleString("es-CO");
+  }
+
+  function renderPagos() {
+    const fmt = fmtPeso;
+
+    // Step 1: categorías
+    const step1 = `
+      <div class="panel pago-panel">
+        <div class="panel-header"><div><h3>Paso 1 — ¿Qué tipo de clase buscas?</h3></div></div>
+        <div class="pago-cats">
+          ${Object.entries(PLANES_PAGOS).map(([key, cat]) => `
+            <div class="pago-cat-card" data-action="pago-cat" data-cat="${key}">
+              <span class="pago-cat-emoji">${cat.emoji}</span>
+              <span class="pago-cat-name">${cat.titulo.split("—")[0].trim()}</span>
+            </div>
+          `).join("")}
+        </div>
+      </div>`;
+
+    // Step 2: planes de la categoría seleccionada
+    const cat = pagoState.cat ? PLANES_PAGOS[pagoState.cat] : null;
+    const step2 = cat ? `
+      <div class="panel pago-panel">
+        <div class="panel-header">
+          <div>
+            <h3>Paso 2 — Elige tu plan</h3>
+            <p>${cat.emoji} ${cat.titulo} · Vigencia: ${cat.vigencia}</p>
+          </div>
+          <button class="btn ghost" data-action="pago-back" data-to="1">${icon("arrowLeft")} Volver</button>
+        </div>
+        <div class="pago-planes-grid">
+          ${cat.items.map(p => `
+            <div class="pago-plan-card${p.popular ? " popular" : ""}"
+                 data-action="pago-plan"
+                 data-nombre="${escapeHtml(p.nombre)}"
+                 data-precio="${p.precio}"
+                 data-dias="${escapeHtml(p.dias)}">
+              ${p.popular ? '<span class="pago-popular-badge">POPULAR</span>' : ""}
+              <div class="pago-plan-nombre">${escapeHtml(p.nombre)}</div>
+              <div class="pago-plan-precio">${fmt(p.precio)}</div>
+              <div class="pago-plan-dias">${p.dias}</div>
+            </div>
+          `).join("")}
+        </div>
+      </div>` : "";
+
+    // Step 3: datos del alumno
+    const step3 = `
+      <div class="panel pago-panel">
+        <div class="panel-header">
+          <div><h3>Paso 3 — Tus datos</h3></div>
+          <button class="btn ghost" data-action="pago-back" data-to="2">${icon("arrowLeft")} Volver</button>
+        </div>
+        ${pagoState.planNombre ? `
+          <div class="pago-resumen-banner">
+            <span>${escapeHtml(pagoState.planNombre)} · ${escapeHtml(pagoState.planDias || "")}</span>
+            <strong>${fmt(pagoState.planPrecio)}</strong>
+          </div>` : ""}
+        <div class="field-grid">
+          <label class="field">
+            Nombre completo
+            <input id="pago-nombre" type="text" placeholder="Ej: María García" autocomplete="name">
+          </label>
+          <label class="field">
+            Teléfono / WhatsApp
+            <input id="pago-tel" type="tel" placeholder="321 000 0000" autocomplete="tel">
+          </label>
+          <label class="field">
+            Correo electrónico
+            <input id="pago-email" type="email" placeholder="tu@correo.com" autocomplete="email">
+          </label>
+          <label class="field">
+            Código de carnet (opcional)
+            <input id="pago-codigo" type="text" placeholder="AC-0001">
+          </label>
+          <div class="split-actions wide">
+            <button class="btn primary" data-action="pago-ir-pago">${icon("check")} Continuar al pago</button>
+          </div>
+        </div>
+      </div>`;
+
+    // Step 4: pago
+    const step4 = `
+      <div class="panel pago-panel">
+        <div class="panel-header">
+          <div><h3>Paso 4 — Pago seguro</h3></div>
+          <button class="btn ghost" data-action="pago-back" data-to="3">${icon("arrowLeft")} Volver</button>
+        </div>
+        <div class="pago-metodos">
+          <span class="pago-badge nequi">💜 Nequi</span>
+          <span class="pago-badge pse">🏦 PSE</span>
+          <span class="pago-badge davi">🟠 Daviplata</span>
+          <span class="pago-badge tarjeta">💳 Tarjeta</span>
+        </div>
+        <div class="pago-wompi-placeholder">
+          <span style="font-size:2rem">🔒</span>
+          <p><strong>Pago seguro con Wompi</strong><br>
+          Aquí aparecerá el botón de pago cuando se active la cuenta Wompi.<br>
+          <small>Encriptado y procesado por Wompi (Bancolombia).</small></p>
+        </div>
+        <div class="split-actions" style="margin-top:16px">
+          <button class="btn primary" data-action="pago-simular">🔒 Pagar ahora (demo)</button>
+        </div>
+      </div>`;
+
+    // Step ok
+    const stepOk = `
+      <div class="panel pago-panel">
+        <div style="text-align:center;padding:2.5rem 1rem">
+          <div class="pago-check">✓</div>
+          <h3 style="font-size:1.5rem;font-weight:700;margin:1rem 0 0.4rem;letter-spacing:-0.02em">¡Pago exitoso!</h3>
+          <p style="color:var(--muted)">Tu plan ha sido registrado. Recibirás confirmación por correo.</p>
+          <div class="split-actions" style="justify-content:center;margin-top:1.5rem">
+            <button class="btn primary" data-action="pago-reiniciar">Realizar otro pago</button>
+          </div>
+        </div>
+      </div>`;
+
+    const panels = { 1: step1, 2: step2, 3: step3, 4: step4, 5: stepOk };
+    const currentPanel = panels[pagoStep] || step1;
+
+    return `
+      ${renderHeader("Pagos en línea", "El alumno elige su plan y paga con Nequi, PSE, Daviplata o tarjeta.")}
+      <div class="pago-notice">
+        <span>🚧</span>
+        <p><strong>Modo demo —</strong> Cuando se active la cuenta Wompi, esta sección procesará pagos reales. El flujo completo ya está listo.</p>
+      </div>
+      ${currentPanel}
+      <style>
+        .pago-notice{display:flex;gap:10px;align-items:flex-start;background:var(--surface-warm);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:16px;font-size:.82rem;color:#92400e}
+        .pago-notice strong{color:#78350f}
+        .pago-cats{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+        .pago-cat-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:1.4rem 1rem;background:var(--bg);border:2px solid transparent;border-radius:var(--radius);cursor:pointer;transition:all .2s;text-align:center}
+        .pago-cat-card:hover{border-color:var(--primary);background:var(--primary-tint);transform:translateY(-2px)}
+        .pago-cat-emoji{font-size:2rem}
+        .pago-cat-name{font-size:.85rem;font-weight:600;color:var(--ink);line-height:1.3}
+        .pago-planes-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+        .pago-plan-card{position:relative;text-align:center;padding:1.2rem .8rem;background:var(--bg);border:2px solid transparent;border-radius:var(--radius);cursor:pointer;transition:all .2s;overflow:hidden}
+        .pago-plan-card:hover,.pago-plan-card.popular{border-color:var(--primary);background:var(--primary-tint);transform:translateY(-2px)}
+        .pago-popular-badge{position:absolute;top:0;right:0;background:var(--accent);color:#fff;font-size:.58rem;font-weight:700;letter-spacing:.06em;padding:2px 8px;border-radius:0 var(--radius) 0 8px}
+        .pago-plan-nombre{font-weight:700;font-size:.92rem;color:var(--ink);margin-bottom:6px}
+        .pago-plan-precio{font-size:1.25rem;font-weight:700;color:var(--primary);letter-spacing:-.02em}
+        .pago-plan-dias{font-size:.72rem;color:var(--muted);margin-top:4px}
+        .pago-resumen-banner{background:var(--primary-tint);border:1px solid rgba(0,119,182,.2);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:.88rem}
+        .pago-resumen-banner strong{font-size:1.2rem;color:var(--primary);font-weight:700}
+        .pago-metodos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+        .pago-badge{padding:5px 12px;border-radius:999px;font-size:.78rem;font-weight:600;background:var(--bg);border:1.5px solid var(--line-opaque);color:var(--muted)}
+        .pago-badge.nequi{background:#f5eeff;border-color:#9333ea;color:#7c3aed}
+        .pago-badge.pse{background:var(--primary-tint);border-color:var(--primary);color:var(--primary-dark)}
+        .pago-badge.davi{background:var(--surface-warm);border-color:var(--accent);color:var(--accent-dark)}
+        .pago-badge.tarjeta{background:#f0fdf4;border-color:#22c55e;color:#166534}
+        .pago-wompi-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:160px;text-align:center;border:2px dashed var(--line-opaque);border-radius:var(--radius);padding:2rem;color:var(--muted);font-size:.88rem}
+        .pago-check{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--success),#16a34a);display:flex;align-items:center;justify-content:center;font-size:2rem;color:#fff;margin:0 auto;box-shadow:0 8px 24px rgba(52,199,89,.3)}
+      </style>
+    `;
+  }
+
 
   function getEvent(eventId) {
     return state.events.find((event) => event.id === eventId);
@@ -1999,6 +2209,42 @@
         break;
       case "clear-data":
         clearData();
+        break;
+      case "pago-cat":
+        pagoState.cat = action.dataset.cat;
+        pagoState.planNombre = null;
+        pagoState.planPrecio = 0;
+        pagoState.planDias = null;
+        pagoStep = 2;
+        render();
+        break;
+      case "pago-plan":
+        pagoState.planNombre = action.dataset.nombre;
+        pagoState.planPrecio = parseInt(action.dataset.precio, 10);
+        pagoState.planDias = action.dataset.dias;
+        pagoStep = 3;
+        render();
+        break;
+      case "pago-back":
+        pagoStep = parseInt(action.dataset.to, 10);
+        render();
+        break;
+      case "pago-ir-pago": {
+        const nombre = document.getElementById("pago-nombre")?.value.trim();
+        const email  = document.getElementById("pago-email")?.value.trim();
+        if (!nombre || !email) { setToast("Ingresa tu nombre y correo para continuar."); return; }
+        pagoStep = 4;
+        render();
+        break;
+      }
+      case "pago-simular":
+        pagoStep = 5;
+        render();
+        break;
+      case "pago-reiniciar":
+        pagoStep = 1;
+        pagoState = { cat: null, planNombre: null, planPrecio: 0, planDias: null };
+        render();
         break;
       default:
         break;
