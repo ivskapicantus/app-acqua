@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carnet — ACQUA NATACIÓN</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;background:#F2F2F7;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1rem;gap:1.2rem}
+canvas#carnetCanvas{border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,.4);max-width:100%}
+.btns{display:flex;flex-direction:column;gap:10px;width:270px}
+.btn{width:100%;padding:13px;border:none;border-radius:12px;font-size:.95rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .2s}
+.btn-primary{background:linear-gradient(135deg,#03045E,#0077B6);color:#fff}
+.btn-wa{background:#25D366;color:#fff}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.loading{text-align:center;color:#6B7280;font-size:.9rem;padding:2rem}
+.error{color:#EF4444;text-align:center;font-size:.88rem;max-width:270px}
+.footer{font-size:.7rem;color:#9CA3AF;text-align:center}
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading">Cargando carnet...</div>
+<div id="errorBox" class="error" style="display:none"></div>
+<canvas id="carnetCanvas" width="540" height="900" style="display:none"></canvas>
+<div class="btns" id="btns" style="display:none">
+  <button class="btn btn-primary" id="btnGuardar">⬇ Guardar imagen del carnet</button>
+  <button class="btn btn-wa" id="btnWA">📲 Compartir por WhatsApp</button>
+</div>
+<p class="footer">ACQUA NATACIÓN · Tu carnet digital oficial</p>
+
+<script>
+const SUPABASE_URL      = "https://sokfsbzzmrpijkmlpmag.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNva2ZzYnp6bXJwaWprbWxwbWFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MzYyNDgsImV4cCI6MjA5NDIxMjI0OH0.bor86ohZ-u9sUl_Lr85vDHhaw7rMyCRuNiX1ZAHVSaM";
+const CLOUD_ROW_ID      = "acquacontrol-principal";
+const CAT_MAP           = {Nino:"Infantil",Adulto:"Adulto",Matronatacion:"Matronatacion","Practica libre":"Practica libre","Infantil":"Infantil"};
+const W=540, H=900; // canvas 2x del carnet (270x450 * 2)
+
+/* ── QR ─────────────────────────────────────────────────── */
+function qrSvg(text){const modules=qrMatrix(text);const border=4,size=modules.length+border*2;const dark=[];for(let y=0;y<modules.length;y++)for(let x=0;x<modules.length;x++)if(modules[y][x])dark.push(`M${x+border},${y+border}h1v1h-1z`);return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}" fill="#fff"/><path d="${dark.join(" ")}" fill="#111827"/></svg>`;}
+function qrMatrix(text){const masks=Array.from({length:8},(_,m)=>buildQrMatrix(text,m));masks.sort((a,b)=>penaltyScore(a)-penaltyScore(b));return masks[0];}
+function buildQrMatrix(text,mask){const version=4,size=version*4+17,dcw=80,ecw=20;const mod=Array.from({length:size},()=>Array(size).fill(false));const res=Array.from({length:size},()=>Array(size).fill(false));function sf(x,y,d){mod[y][x]=Boolean(d);res[y][x]=true;}function rv(x,y){res[y][x]=true;}function df(l,t){for(let dy=-1;dy<=7;dy++)for(let dx=-1;dx<=7;dx++){const x=l+dx,y=t+dy;if(x<0||y<0||x>=size||y>=size)continue;const d=dx>=0&&dx<=6&&dy>=0&&dy<=6&&(dx===0||dx===6||dy===0||dy===6||(dx>=2&&dx<=4&&dy>=2&&dy<=4));sf(x,y,d);}}function da(cx,cy){for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)sf(cx+dx,cy+dy,Math.max(Math.abs(dx),Math.abs(dy))!==1);}function dt(){for(let i=8;i<size-8;i++){sf(i,6,i%2===0);sf(6,i,i%2===0);}}function rf(){for(let i=0;i<=8;i++)if(i!==6){rv(8,i);rv(i,8);}for(let i=0;i<8;i++)rv(size-1-i,8);for(let i=0;i<7;i++)rv(8,size-1-i);}function pd(cw){let bi=0,up=true;for(let r=size-1;r>=1;r-=2){if(r===6)r-=1;for(let v=0;v<size;v++){const y=up?size-1-v:v;for(let c=0;c<2;c++){const x=r-c;if(res[y][x])continue;const bit=bi<cw.length*8?((cw[Math.floor(bi/8)]>>>(7-(bi%8)))&1)===1:false;mod[y][x]=bit!==mb(mask,x,y);bi++;}}up=!up;}}function fb(mv){const bits=fmtB(1,mv);for(let i=0;i<=5;i++)sf(8,i,ba(bits,i));sf(8,7,ba(bits,6));sf(8,8,ba(bits,7));sf(7,8,ba(bits,8));for(let i=9;i<15;i++)sf(14-i,8,ba(bits,i));for(let i=0;i<8;i++)sf(size-1-i,8,ba(bits,i));for(let i=8;i<15;i++)sf(8,size-15+i,ba(bits,i));sf(8,size-8,true);}df(0,0);df(size-7,0);df(0,size-7);da(26,26);dt();rf();sf(8,size-8,true);const data=eqd(text,dcw);const ecc=rsr(data,ecw);pd(data.concat(ecc));fb(mask);return mod;}
+function eqd(t,dcw){const bytes=Array.from(new TextEncoder().encode(t));if(bytes.length>78)throw new Error("too long");const bits=[];function ab(v,l){for(let i=l-1;i>=0;i--)bits.push((v>>>i)&1);}ab(4,4);ab(bytes.length,8);bytes.forEach(b=>ab(b,8));const cap=dcw*8;ab(0,Math.min(4,cap-bits.length));while(bits.length%8)bits.push(0);const cw=[];for(let i=0;i<bits.length;i+=8){let v=0;for(let j=0;j<8;j++)v=(v<<1)|bits[i+j];cw.push(v);}for(let p=0xec;cw.length<dcw;p=p===0xec?0x11:0xec)cw.push(p);return cw;}
+function fmtB(e,m){const d=(e<<3)|m;let r=d<<10;for(let i=14;i>=10;i--)if(((r>>>i)&1)!==0)r^=0x537<<(i-10);return((d<<10)|r)^0x5412;}
+function ba(v,i){return((v>>>i)&1)!==0;}
+function mb(m,x,y){switch(m){case 0:return(x+y)%2===0;case 1:return y%2===0;case 2:return x%3===0;case 3:return(x+y)%3===0;case 4:return(Math.floor(y/2)+Math.floor(x/3))%2===0;case 5:return((x*y)%2)+((x*y)%3)===0;case 6:return(((x*y)%2)+((x*y)%3))%2===0;case 7:return(((x+y)%2)+((x*y)%3))%2===0;default:return false;}}
+function penaltyScore(M){const s=M.length;let sc=0;for(let y=0;y<s;y++){let rc=M[y][0],rl=1;for(let x=1;x<s;x++){if(M[y][x]===rc){rl++;if(rl===5)sc+=3;else if(rl>5)sc+=1;}else{rc=M[y][x];rl=1;}}}for(let x=0;x<s;x++){let rc=M[0][x],rl=1;for(let y=1;y<s;y++){if(M[y][x]===rc){rl++;if(rl===5)sc+=3;else if(rl>5)sc+=1;}else{rc=M[y][x];rl=1;}}}for(let y=0;y<s-1;y++)for(let x=0;x<s-1;x++){const c=M[y][x];if(c===M[y][x+1]&&c===M[y+1][x]&&c===M[y+1][x+1])sc+=3;}const dk=M.flat().filter(Boolean).length;sc+=Math.floor(Math.abs((dk*100)/(s*s)-50)/5)*10;return sc;}
+const gfE=Array(512).fill(0),gfL=Array(256).fill(0);let gV=1;for(let i=0;i<255;i++){gfE[i]=gV;gfL[gV]=i;gV<<=1;if(gV&0x100)gV^=0x11d;}for(let i=255;i<gfE.length;i++)gfE[i]=gfE[i-255];
+function gM(l,r){if(!l||!r)return 0;return gfE[gfL[l]+gfL[r]];}
+function rsd(deg){const r=Array(deg).fill(0);r[deg-1]=1;let root=1;for(let i=0;i<deg;i++){for(let j=0;j<r.length;j++){r[j]=gM(r[j],root);if(j+1<r.length)r[j]^=r[j+1];}root=gM(root,0x02);}return r;}
+function rsr(data,deg){const div=rsd(deg),res=Array(deg).fill(0);data.forEach(b=>{const f=b^res.shift();res.push(0);div.forEach((c,i)=>{res[i]^=gM(c,f);});});return res;}
+
+function svgToImg(svgStr){
+  return new Promise(resolve=>{
+    const blob=new Blob([svgStr],{type:"image/svg+xml"});
+    const url=URL.createObjectURL(blob);
+    const img=new Image();
+    img.onload=()=>{URL.revokeObjectURL(url);resolve(img);};
+    img.src=url;
+  });
+}
+
+function loadImg(src){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.crossOrigin="anonymous";
+    img.onload=()=>resolve(img);
+    img.onerror=()=>reject(new Error("No se pudo cargar: "+src));
+    img.src=src;
+  });
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+async function drawCarnet(student){
+  const canvas=document.getElementById("carnetCanvas");
+  const ctx=canvas.getContext("2d");
+
+  // Escala 2x para alta resolución
+  const scale=2;
+  const cw=270*scale, ch=450*scale;
+  canvas.width=cw; canvas.height=ch;
+  canvas.style.width="270px"; canvas.style.height="450px";
+
+  // 1. Fondo redondeado
+  roundRect(ctx,0,0,cw,ch,18*scale);
+  ctx.clip();
+
+  // 2. Imagen de plantilla de fondo
+  try {
+    const bg=await loadImg("assets/carnet-Acqua.jpg");
+    ctx.drawImage(bg,0,0,cw,ch);
+  } catch(e){
+    // Fallback: fondo azul si no carga la imagen
+    const grad=ctx.createLinearGradient(0,0,0,ch);
+    grad.addColorStop(0,"#03045E"); grad.addColorStop(1,"#0077B6");
+    ctx.fillStyle=grad; ctx.fillRect(0,0,cw,ch);
+  }
+
+  // 3. QR code
+  const qrUrl="https://app-acqua.netlify.app/?checkin="+encodeURIComponent(student.code);
+  const qrImg=await svgToImg(qrSvg(qrUrl));
+  const qrX=cw*0.145, qrY=cw*0.25, qrS=cw*0.71;
+  // Caja blanca detrás del QR
+  const pad=8*scale;
+  ctx.fillStyle="#ffffff";
+  roundRect(ctx,qrX-pad,qrY-pad,qrS+pad*2,qrS+pad*2,10*scale);
+  ctx.fill();
+  ctx.drawImage(qrImg,qrX,qrY,qrS,qrS);
+
+  // 4. Nombre del alumno
+  const parts=student.name.toUpperCase().trim().split(/\s+/);
+  const si=parts.length>=4?2:1;
+  const nombre1=parts.slice(0,si).join(" ");
+  const nombre2=parts.slice(si).join(" ");
+
+  const nameY=ch*0.67;
+  ctx.textAlign="center";
+  ctx.fillStyle="#0a2472";
+  ctx.font=`800 ${23*scale}px -apple-system,BlinkMacSystemFont,Arial,sans-serif`;
+  ctx.fillText(nombre1,cw/2,nameY);
+  if(nombre2) ctx.fillText(nombre2,cw/2,nameY+28*scale);
+
+  // 5. Categoría en naranja
+  const cat=CAT_MAP[student.category]||student.category||"";
+  ctx.fillStyle="#FF6B00";
+  ctx.font=`800 ${16*scale}px -apple-system,BlinkMacSystemFont,Arial,sans-serif`;
+  ctx.fillText(cat,cw/2,nameY+(nombre2?58:32)*scale);
+
+  // 6. Días restantes
+  ctx.fillStyle="#0a2472";
+  ctx.font=`600 ${12*scale}px -apple-system,BlinkMacSystemFont,Arial,sans-serif`;
+  ctx.fillText("Tienes 35 dias para consumir tu plan",cw/2,nameY+(nombre2?78:52)*scale);
+
+  // 7. "DESDE 2015"
+  ctx.fillStyle="#6688bb";
+  ctx.font=`700 ${10*scale}px -apple-system,BlinkMacSystemFont,Arial,sans-serif`;
+  ctx.letterSpacing=(3*scale)+"px";
+  ctx.fillText("DESDE 2015",cw/2,ch*0.965);
+
+  canvas.style.display="block";
+  document.getElementById("btns").style.display="flex";
+  document.getElementById("loading").style.display="none";
+}
+
+async function init(){
+  const params=new URLSearchParams(location.search);
+  const studentCode=params.get("alumno");
+  if(!studentCode){
+    document.getElementById("loading").style.display="none";
+    document.getElementById("errorBox").textContent="No se especificó ningún alumno.";
+    document.getElementById("errorBox").style.display="block";
+    return;
+  }
+  try {
+    const res=await fetch(SUPABASE_URL+"/rest/v1/app_state?id=eq."+encodeURIComponent(CLOUD_ROW_ID)+"&select=data",
+      {cache:"no-store",headers:{apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+SUPABASE_ANON_KEY}});
+    const rows=await res.json();
+    const state=rows[0]?.data;
+    if(!state) throw new Error("Sin datos");
+    const student=state.students?.find(s=>String(s.code||"").toUpperCase()===studentCode.toUpperCase());
+    if(!student) throw new Error("Alumno no encontrado");
+    document.title="Carnet "+student.name+" — ACQUA NATACIÓN";
+    await drawCarnet(student);
+    setupBtns(student);
+  } catch(e){
+    document.getElementById("loading").style.display="none";
+    document.getElementById("errorBox").textContent="No se pudo cargar el carnet: "+e.message;
+    document.getElementById("errorBox").style.display="block";
+  }
+}
+
+function setupBtns(student){
+  const canvas=document.getElementById("carnetCanvas");
+
+  document.getElementById("btnGuardar").onclick=function(){
+    const link=document.createElement("a");
+    link.download="carnet-"+student.code+".png";
+    link.href=canvas.toDataURL("image/png");
+    link.click();
+  };
+
+  document.getElementById("btnWA").onclick=async function(){
+    const url="https://app-acqua.netlify.app/carnet-acqua.html?alumno="+encodeURIComponent(student.code);
+    const msg="Hola "+student.name.split(" ")[0]+"! Aqui esta tu carnet digital de ACQUA NATACION:\n\n"+url+"\n\nAbre el enlace para ver tu carnet y guardarlo como imagen en tu celular.";
+    canvas.toBlob(async function(blob){
+      if(navigator.share&&navigator.canShare&&navigator.canShare({files:[new File([blob],"carnet.png",{type:"image/png"})]})){
+        try{ await navigator.share({title:"Mi carnet ACQUA",text:msg,files:[new File([blob],"carnet-"+student.code+".png",{type:"image/png"})]}); return; }
+        catch(e){}
+      }
+      window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank","noopener");
+    },"image/png");
+  };
+}
+
+init();
+</script>
+</body>
+</html>
