@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro — ACQUA NATACIÓN</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;background:#F2F2F7;min-height:100vh;padding:1.2rem 1rem 3rem}
+.card{max-width:500px;margin:0 auto;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.card-header{background:linear-gradient(135deg,#03045E 0%,#0077B6 100%);padding:1.6rem 1.4rem 1.3rem;color:#fff;text-align:center}
+.card-header img{height:44px;margin-bottom:8px;filter:brightness(0) invert(1);object-fit:contain}
+.card-header h1{font-size:1.15rem;font-weight:700}
+.card-header p{font-size:.75rem;opacity:.75;margin-top:3px;letter-spacing:.06em;text-transform:uppercase}
+.body{padding:1.4rem}
+.section-title{font-size:.72rem;font-weight:700;color:#0077B6;text-transform:uppercase;letter-spacing:.1em;margin:1.2rem 0 .7rem;padding-bottom:4px;border-bottom:1.5px solid #BFDBFE}
+.section-title:first-child{margin-top:0}
+.grid{display:grid;gap:10px}
+.grid.cols2{grid-template-columns:1fr 1fr}
+.field label{display:block;font-size:.72rem;font-weight:600;color:#6B7280;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.field .req{color:#EF4444}
+.field input,.field select,.field textarea{width:100%;padding:10px 13px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:.93rem;color:#111;outline:none;background:#fff;transition:border-color .2s;font-family:inherit}
+.field textarea{resize:vertical;min-height:72px}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#0077B6}
+.btn-submit{width:100%;padding:15px;background:linear-gradient(135deg,#03045E,#0077B6);color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:1rem;transition:opacity .2s}
+.btn-submit:hover{opacity:.9}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed}
+.success{display:none;text-align:center;padding:2rem 1rem}
+.success-icon{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#34C759,#2da44e);color:#fff;font-size:2.5rem;line-height:72px;margin:0 auto 1rem}
+.success-title{font-size:1.15rem;font-weight:800;color:#0a2472;margin-bottom:6px}
+.success-sub{font-size:.85rem;color:#6B7280;line-height:1.6}
+.success-code{display:inline-block;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:10px;padding:8px 18px;font-size:1.1rem;font-weight:800;color:#1E40AF;margin:12px 0}
+.error-msg{background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;font-size:.84rem;color:#991B1B;margin-top:10px;display:none}
+.footer{text-align:center;padding:.8rem;font-size:.7rem;color:#9CA3AF;border-top:1px solid #F3F4F6}
+@media(max-width:400px){.grid.cols2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-header">
+    <img src="assets/logo-acqua-blanco.png" alt="ACQUA NATACIÓN">
+    <h1>Formulario de inscripción</h1>
+    <p>ACQUA NATACIÓN · Chía</p>
+  </div>
+
+  <div class="body">
+    <form id="regForm">
+
+      <p class="section-title">Datos personales</p>
+      <div class="grid">
+        <div class="field">
+          <label>Nombre completo del alumno <span class="req">*</span></label>
+          <input name="name" type="text" autocomplete="name" placeholder="Nombre y apellidos" required>
+        </div>
+        <div class="grid cols2">
+          <div class="field">
+            <label>Documento <span class="req">*</span></label>
+            <input name="documento" inputmode="numeric" placeholder="CC / TI / CE" required>
+          </div>
+          <div class="field">
+            <label>Tipo</label>
+            <select name="category">
+              <option value="Infantil">Infantil</option>
+              <option value="Adulto">Adulto</option>
+              <option value="Matronatacion">Matronatacion</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid cols2">
+          <div class="field">
+            <label>Fecha de nacimiento</label>
+            <input name="birthdate" type="date">
+          </div>
+          <div class="field">
+            <label>Telefono <span class="req">*</span></label>
+            <input name="phone" type="tel" inputmode="numeric" placeholder="300 000 0000" required>
+          </div>
+        </div>
+        <div class="grid cols2">
+          <div class="field">
+            <label>Acudiente o contacto</label>
+            <input name="responsible" placeholder="Nombre del acudiente">
+          </div>
+          <div class="field">
+            <label>Tel. acudiente</label>
+            <input name="phoneAcudiente" type="tel" inputmode="numeric" placeholder="300 000 0000">
+          </div>
+        </div>
+        <div class="field">
+          <label>Correo electronico</label>
+          <input name="email" type="email" placeholder="correo@ejemplo.com">
+        </div>
+      </div>
+
+      <p class="section-title">Plan y nivel</p>
+      <div class="field">
+        <label>Nivel del alumno</label>
+        <select name="nivel">
+          <option value="">Sin nivel asignado</option>
+          <option value="1">Nivel 1</option>
+          <option value="2">Nivel 2</option>
+          <option value="3">Nivel 3</option>
+          <option value="4">Nivel 4</option>
+          <option value="5">Nivel 5</option>
+          <option value="6">Nivel 6</option>
+          <option value="7">Nivel 7</option>
+          <option value="8">Nivel 8</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Plan mensual <span class="req">*</span></label>
+        <select name="planType" id="planSelect">
+          <option value="1_practica">1 practica libre</option>
+          <option value="1_grupal">1 clase grupal</option>
+          <option value="1_matronat">1 clase de matronatacion</option>
+          <option value="4" selected>4 clases/mes</option>
+          <option value="9">9 clases/mes</option>
+          <option value="8_practicas">8 practicas libres</option>
+          <option value="13">13 clases/mes</option>
+          <option value="13_equipo">13 clases equipo</option>
+          <option value="5_vacacional">5 clases vacacional</option>
+          <option value="matronat_4">Matronatacion 4 clases/mes</option>
+          <option value="matronat_8">Matronatacion 8 clases/mes</option>
+          <option value="matronat_personalizada_4">4 clases de Matronatacion personalizadas</option>
+          <option value="anual_4">Plan anual 4 clases</option>
+          <option value="anual_9">Plan anual 9 clases</option>
+          <option value="anual_13">Plan anual 13 clases</option>
+          <option value="personalizado_4">Personalizado 4 clases</option>
+          <option value="personalizado_8">Personalizado 8 clases</option>
+          <option value="custom">Personalizado</option>
+        </select>
+      </div>
+      <div class="field" id="customClasesWrap" style="display:none">
+        <label>Numero de clases</label>
+        <input name="customClasses" type="number" min="1" max="80" value="1">
+      </div>
+
+      <p class="section-title">Datos medicos y fisicos</p>
+      <div class="grid cols2">
+        <div class="field">
+          <label>Estatura (cm)</label>
+          <input name="talla" type="number" min="30" max="250" placeholder="Ej: 120">
+        </div>
+        <div class="field">
+          <label>Peso (kg)</label>
+          <input name="peso" type="number" min="1" max="300" placeholder="Ej: 45">
+        </div>
+        <div class="field">
+          <label>Tipo de sangre</label>
+          <select name="sangre">
+            <option value="">Seleccionar</option>
+            <option>O+</option><option>O-</option>
+            <option>A+</option><option>A-</option>
+            <option>B+</option><option>B-</option>
+            <option>AB+</option><option>AB-</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Talla camiseta</label>
+          <select name="camiseta">
+            <option value="">Seleccionar</option>
+            <option>2</option><option>4</option><option>6</option><option>8</option>
+            <option>10</option><option>12</option><option>14</option>
+            <option>XS</option><option>S</option><option>M</option>
+            <option>L</option><option>XL</option><option>XXL</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>EPS</label>
+        <input name="eps" placeholder="Ej: Sura, Sanitas, Compensar...">
+      </div>
+
+      <p class="section-title">Observaciones</p>
+      <div class="field">
+        <label>Alergias, condiciones medicas u otras notas</label>
+        <textarea name="notes" placeholder="Escribe aqui cualquier informacion importante..."></textarea>
+      </div>
+
+      <div id="errorMsg" class="error-msg"></div>
+      <button type="submit" class="btn-submit" id="btnSubmit">Enviar inscripcion</button>
+    </form>
+
+    <div class="success" id="successBox">
+      <div class="success-icon">✓</div>
+      <div class="success-title">Inscripcion recibida</div>
+      <div class="success-code" id="successCode"></div>
+      <div class="success-sub">Tu inscripcion fue registrada en el sistema de ACQUA NATACION. Guarda tu codigo de carnet, lo necesitaras para asistir a clases.<br><br>El equipo de ACQUA se comunicara contigo pronto para confirmar el inicio de clases.</div>
+    </div>
+  </div>
+
+  <div class="footer">ACQUA NATACION · Chia · Fundada el 17 de marzo de 2015</div>
+</div>
+
+<script>
+const SUPABASE_URL      = "https://sokfsbzzmrpijkmlpmag.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNva2ZzYnp6bXJwaWprbWxwbWFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MzYyNDgsImV4cCI6MjA5NDIxMjI0OH0.bor86ohZ-u9sUl_Lr85vDHhaw7rMyCRuNiX1ZAHVSaM";
+const CLOUD_ROW_ID      = "acquacontrol-principal";
+
+const PLAN_CLASSES = {"1_practica":1,"1_grupal":1,"1_matronat":1,"4":4,"9":9,"8_practicas":8,"13":13,"13_equipo":13,"5_vacacional":5,"matronat_4":4,"matronat_8":8,"matronat_personalizada_4":4,"anual_4":4,"anual_9":9,"anual_13":13,"personalizado_4":4,"personalizado_8":8,"anual":100,"obsequio_1":1,"obsequio_2":2,"obsequio_3":3};
+
+// Mostrar/ocultar campo personalizado
+document.getElementById("planSelect").addEventListener("change", function(){
+  document.getElementById("customClasesWrap").style.display = this.value === "custom" ? "" : "none";
+});
+
+async function fetchExistingStudents(){
+  try {
+    const res = await fetch(SUPABASE_URL+"/rest/v1/students?select=code,name",
+      { cache:"no-store", headers:{ apikey:SUPABASE_ANON_KEY, Authorization:"Bearer "+SUPABASE_ANON_KEY } });
+    if(!res.ok) return null;
+    return await res.json();
+  } catch(e){ return null; }
+}
+
+async function insertStudentRow(row){
+  return fetch(SUPABASE_URL+"/rest/v1/students", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json", apikey:SUPABASE_ANON_KEY, Authorization:"Bearer "+SUPABASE_ANON_KEY, Prefer:"return=minimal" },
+    body: JSON.stringify(row)
+  });
+}
+
+function uid(){ return "student_"+Date.now()+"_"+Math.random().toString(16).slice(2); }
+
+function nextCode(existing){
+  const max=(existing||[]).reduce((h,s)=>{ const m=String(s.code||"").match(/(\d+)$/); return Math.max(h,m?Number(m[1]):0); },0);
+  return "AC-"+String(max+1).padStart(4,"0");
+}
+
+function monthKey(){
+  const d=new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+}
+
+document.getElementById("regForm").addEventListener("submit", async function(e){
+  e.preventDefault();
+  const fd = new FormData(this);
+  const name = (fd.get("name")||"").trim();
+  const phone = (fd.get("phone")||"").trim();
+  const documento = (fd.get("documento")||"").trim();
+  const errorEl = document.getElementById("errorMsg");
+  const btn = document.getElementById("btnSubmit");
+
+  errorEl.style.display="none";
+  if(!name){ errorEl.textContent="El nombre es obligatorio."; errorEl.style.display="block"; return; }
+  if(!phone){ errorEl.textContent="El telefono es obligatorio."; errorEl.style.display="block"; return; }
+  if(!documento){ errorEl.textContent="El documento es obligatorio."; errorEl.style.display="block"; return; }
+
+  btn.disabled=true; btn.textContent="Enviando...";
+
+  const existing = await fetchExistingStudents();
+  if(existing===null){ errorEl.textContent="No se pudo conectar al sistema. Intenta de nuevo en unos minutos."; errorEl.style.display="block"; btn.disabled=false; btn.textContent="Enviar inscripcion"; return; }
+
+  // Verificar duplicado por nombre
+  const nameNorm=name.toLowerCase().replace(/\s+/g," ");
+  const dup=existing.find(s=>String(s.name||"").toLowerCase().replace(/\s+/g," ")===nameNorm);
+  if(dup){ errorEl.textContent="Ya existe un alumno con ese nombre ("+dup.code+"). Si crees que es un error, comunicate con ACQUA NATACION."; errorEl.style.display="block"; btn.disabled=false; btn.textContent="Enviar inscripcion"; return; }
+
+  const planType = fd.get("planType")||"4";
+  const code = nextCode(existing);
+  const now = new Date().toISOString();
+
+  const row = {
+    id: uid(), code, name,
+    nivel: (fd.get("nivel")||""),
+    category: fd.get("category")||"Infantil",
+    birthdate: (fd.get("birthdate")||"").trim(),
+    documento,
+    phone,
+    responsible: (fd.get("responsible")||"").trim(),
+    phone_acudiente: (fd.get("phoneAcudiente")||"").trim(),
+    email: (fd.get("email")||"").trim(),
+    plan_type: planType,
+    custom_classes: planType==="custom"?String(Math.max(1,Number(fd.get("customClasses")||1))):"",
+    talla: (fd.get("talla")||"").trim(),
+    peso: (fd.get("peso")||"").trim(),
+    sangre: (fd.get("sangre")||"").trim(),
+    eps: (fd.get("eps")||"").trim(),
+    camiseta: (fd.get("camiseta")||"").trim(),
+    notes: (fd.get("notes")||"").trim(),
+    status: "active",
+    month_key: monthKey(),
+    classes_used: 0,
+    bonus_classes: 0,
+    created_at: now, updated_at: now
+  };
+
+  const res = await insertStudentRow(row);
+  if(!res || (res.status && res.status >= 400)){
+    errorEl.textContent="Error al guardar. Intenta de nuevo.";
+    errorEl.style.display="block";
+    btn.disabled=false; btn.textContent="Enviar inscripcion";
+    return;
+  }
+
+  // Mostrar exito
+  document.getElementById("regForm").style.display="none";
+  document.getElementById("successCode").textContent="Codigo de carnet: "+code;
+  document.getElementById("successBox").style.display="block";
+});
+</script>
+</body>
+</html>
