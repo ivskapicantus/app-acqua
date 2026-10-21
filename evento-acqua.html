@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inscripción a evento — ACQUA NATACIÓN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EAF4F8; --surface:#fff; --ink:#052A44; --ink2:#2C4B5E; --muted:#6C8A97;
+  --line:#DCE9EE; --primary:#0077B6; --primary-dark:#005F92; --deep:#052A44; --teal:#00A8C6;
+  --accent:#F2A93B; --danger:#E5484D; --danger-tint:rgba(229,72,77,.1); --success:#1D9E75;
+  --font-display:'Fraunces',Georgia,serif;
+  --font-body:'Manrope',-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;line-height:1.5}
+.shell{max-width:520px;margin:0 auto;padding-bottom:2rem}
+.hero{position:relative;background:linear-gradient(160deg,var(--deep) 0%,var(--primary) 65%,var(--teal) 100%);color:#fff;padding:26px 22px 54px}
+.hero svg{position:absolute;left:0;right:0;bottom:-1px;display:block}
+.hero img{height:40px;width:auto;max-width:170px;object-fit:contain;display:block;margin-bottom:14px}
+.eyebrow{font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#9FE0EE}
+.hero h1{font-family:var(--font-display);font-weight:600;font-size:1.9rem;line-height:1.12;margin:4px 0 8px;letter-spacing:-.01em}
+.ev-meta{font-size:.9rem;color:rgba(255,255,255,.85)}
+.card{background:var(--surface);margin:-8px 14px 0;border-radius:20px;padding:22px 18px;box-shadow:0 2px 8px rgba(5,42,68,.05),0 16px 44px rgba(5,42,68,.1);position:relative}
+.section-title{font-family:var(--font-display);font-weight:600;font-size:1.1rem;color:var(--ink);margin:22px 0 10px}
+.section-title:first-child{margin-top:0}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.seg-opt{position:relative}
+.seg-opt input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.seg-opt span{display:flex;align-items:center;justify-content:center;text-align:center;min-height:52px;padding:8px 10px;border:1.5px solid var(--line);border-radius:14px;font-weight:700;font-size:.9rem;color:var(--muted);background:#F7FBFD;transition:all .15s}
+.seg-opt input:checked + span{border-color:var(--primary);color:var(--primary);background:rgba(0,119,182,.08)}
+.seg-opt input:focus-visible + span{outline:3px solid rgba(0,119,182,.35);outline-offset:2px}
+.field{display:block;margin-bottom:12px}
+.field>span{display:block;font-size:.74rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.field input{width:100%;min-height:48px;padding:10px 14px;border:1.5px solid var(--line);border-radius:12px;font-family:inherit;font-size:16px;color:var(--ink);background:#F7FBFD;outline:none;transition:border-color .15s,box-shadow .15s}
+.field input:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 4px rgba(0,119,182,.14)}
+.row2{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
+.hint{font-size:.8rem;color:var(--muted);margin:-2px 0 10px}
+.waiver{background:#F4F9FB;border:1px solid var(--line);border-radius:14px;padding:14px 16px;max-height:260px;overflow-y:auto;font-size:.82rem;color:var(--ink2);margin-bottom:12px}
+.waiver ol{padding-left:18px;display:grid;gap:8px}
+.waiver strong{color:var(--ink)}
+.consent{display:flex;gap:10px;align-items:flex-start;background:#F4F9FB;border:1px solid var(--line);border-radius:12px;padding:12px;margin:4px 0 14px;font-size:.84rem;color:var(--ink2);cursor:pointer}
+.consent input{width:22px;height:22px;flex-shrink:0;margin-top:1px;accent-color:var(--primary)}
+.btn{width:100%;min-height:54px;border:none;border-radius:999px;background:var(--primary);color:#fff;font-family:inherit;font-size:1rem;font-weight:800;cursor:pointer;box-shadow:0 1px 2px rgba(5,42,68,.08),0 6px 16px rgba(0,119,182,.28);transition:background .15s,transform .1s}
+.btn:hover{background:var(--primary-dark)}
+.btn:active{transform:scale(.99)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.alert{border-radius:12px;padding:12px 14px;font-size:.88rem;margin-bottom:14px}
+.alert.err{background:var(--danger-tint);border:1px solid rgba(229,72,77,.35);color:#9b1c20}
+.state{text-align:center;padding:26px 8px;color:var(--muted)}
+.done{text-align:center;padding:10px 4px 4px}
+.done .check{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#25b88a,var(--success));color:#fff;font-size:2.6rem;line-height:76px;margin:6px auto 14px;box-shadow:0 6px 18px rgba(29,158,117,.35)}
+.done h2{font-family:var(--font-display);font-weight:600;font-size:1.5rem;margin-bottom:6px}
+.done p{color:var(--ink2);font-size:.92rem}
+.summary{margin:16px 0 4px;background:#F4F9FB;border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left;font-size:.86rem;display:grid;gap:6px}
+.summary b{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;display:block}
+footer{text-align:center;font-size:.72rem;color:var(--muted);padding:18px 14px 0}
+[hidden]{display:none!important}
+.field select,.field textarea{width:100%;min-height:48px;padding:10px 14px;border:1.5px solid var(--line);border-radius:12px;font-family:inherit;font-size:16px;color:var(--ink);background:#F7FBFD;outline:none}
+.field textarea{min-height:84px;resize:vertical}
+.field select:focus,.field textarea:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 4px rgba(0,119,182,.14)}
+.field input[readonly]{background:#EEF4F7;color:var(--ink2)}
+.row2{grid-template-columns:1fr 1fr}
+.subtitle{font-weight:800;font-size:.8rem;color:var(--ink2);margin:6px 0 8px}
+.btn.secondary{background:rgba(0,119,182,.1);color:var(--primary);box-shadow:none;min-height:48px;margin-bottom:10px}
+.btn.secondary:hover{background:rgba(0,119,182,.18)}
+.alert.ok{background:rgba(29,158,117,.1);border:1px solid rgba(29,158,117,.4);color:#0f6b4f}
+.waiver{max-height:340px}
+.waiver h4{font-family:var(--font-display);font-size:1.02rem;color:var(--ink);margin:0 0 8px}
+.waiver h5{font-size:.88rem;color:var(--ink);margin:14px 0 6px}
+.waiver p{margin:0 0 8px}
+.waiver ul{padding-left:18px;margin:0 0 8px;display:grid;gap:4px}
+.waiver .g-title{font-weight:800;color:var(--ink);margin:8px 0 2px}
+.waiver table{width:100%;border-collapse:collapse;margin:4px 0 10px;font-size:.8rem}
+.waiver td{border:1px solid var(--line);padding:6px 8px;vertical-align:top}
+.waiver td:first-child{background:#EAF2F6;font-weight:700;width:38%;color:var(--ink)}
+
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="hero">
+    <img src="assets/logo-acqua-blanco.png" alt="ACQUA NATACIÓN">
+    <p class="eyebrow">Inscripción a evento</p>
+    <h1 id="evName">Cargando evento…</h1>
+    <p class="ev-meta" id="evMeta"></p>
+    <svg width="100%" height="22" viewBox="0 0 400 22" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0,10 C55,22 100,0 150,9 C200,18 245,3 300,10 C335,14 365,7 400,11 L400,22 L0,22 Z" fill="#EAF4F8"/>
+    </svg>
+  </header>
+
+  <main class="card">
+    <div id="stateLoading" class="state">Cargando…</div>
+    <div id="stateError" class="alert err" hidden></div>
+
+    <form id="evForm" hidden novalidate>
+      <p class="section-title">¿Quién eres?</p>
+      <div class="seg">
+        <label class="seg-opt"><input type="radio" name="tipo" value="alumno" checked><span>Soy alumno de ACQUA</span></label>
+        <label class="seg-opt"><input type="radio" name="tipo" value="externo"><span>Soy persona externa</span></label>
+      </div>
+
+      <div id="boxAlumno">
+        <label class="field"><span>Código de tu carnet</span>
+          <input name="code" placeholder="AC-0123" autocapitalize="characters" autocomplete="off"></label>
+        <label class="field"><span>Tu documento o teléfono registrado</span>
+          <input name="verif" inputmode="numeric" placeholder="El que diste al inscribirte" autocomplete="off"></label>
+        <p class="hint">¿No recuerdas tu código? Escoge “Soy persona externa” o escríbenos.</p>
+        <button type="button" class="btn secondary" id="btnVerificar">Verificar mis datos</button>
+        <div id="verifErr" class="alert err" hidden></div>
+        <div id="verifOk" class="alert ok" hidden></div>
+      </div>
+
+      <div id="boxRest" hidden>
+        <p class="section-title">Datos del participante</p>
+        <label class="field"><span>Nombre completo</span><input name="pname" autocomplete="name" placeholder="Nombre y apellidos"></label>
+        <div class="row2">
+          <label class="field"><span>Documento</span><input name="pdoc" inputmode="numeric" placeholder="CC / TI / CE" autocomplete="off"></label>
+          <label class="field"><span>Fecha de nacimiento</span><input name="pbirth" type="date"></label>
+        </div>
+        <div class="row2">
+          <label class="field"><span>Teléfono</span><input name="pphone" type="tel" inputmode="tel" autocomplete="tel" placeholder="300 000 0000"></label>
+          <label class="field"><span>Correo (opcional)</span><input name="pemail" type="email" autocomplete="email" placeholder="correo@ejemplo.com"></label>
+        </div>
+        <div class="row2">
+          <label class="field"><span>Estatura (cm)</span><input name="pheight" type="number" min="30" max="250" inputmode="numeric" placeholder="Ej: 120"></label>
+          <label class="field"><span>Peso (kg)</span><input name="pweight" type="number" min="1" max="300" inputmode="numeric" placeholder="Ej: 45"></label>
+        </div>
+        <div class="row2">
+          <label class="field"><span>Tipo de sangre</span><select name="pblood"><option value="">Seleccionar</option><option>O+</option><option>O-</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option></select></label>
+          <label class="field"><span>Talla de camiseta</span><select name="pshirt"><option value="">Seleccionar</option><option>2</option><option>4</option><option>6</option><option>8</option><option>10</option><option>12</option><option>14</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option></select></label>
+        </div>
+        <label class="field"><span>EPS / seguro médico</span><input name="peps" placeholder="Ej: Sura, Sanitas, Compensar…"></label>
+        <label class="field"><span>Condiciones médicas, alergias o medicamentos relevantes</span><textarea name="pnotes" placeholder="Si no hay ninguna, déjalo en blanco"></textarea></label>
+
+        <p class="subtitle">Contacto de emergencia</p>
+        <div class="row2">
+          <label class="field"><span>Nombre</span><input name="emname" autocomplete="off" placeholder="Nombre y apellido"></label>
+          <label class="field"><span>Teléfono</span><input name="emphone" type="tel" inputmode="tel" autocomplete="off" placeholder="300 000 0000"></label>
+        </div>
+
+        <div id="boxMenor" hidden>
+          <p class="section-title">Representante (padre, madre o acudiente)</p>
+          <p class="hint">El participante es menor de edad: su representante legal firma por él.</p>
+          <label class="field"><span>Nombre completo del representante</span><input name="tname" autocomplete="off" placeholder="Nombre y apellidos"></label>
+          <div class="row2">
+            <label class="field"><span>Parentesco</span><input name="trel" autocomplete="off" placeholder="Madre, padre, tutor…"></label>
+            <label class="field"><span>Documento</span><input name="tdoc" inputmode="numeric" autocomplete="off" placeholder="CC / CE"></label>
+          </div>
+          <label class="field"><span>Teléfono del representante</span><input name="tphone" type="tel" inputmode="tel" autocomplete="off" placeholder="300 000 0000"></label>
+        </div>
+
+        <p class="section-title">Exoneración de responsabilidad</p>
+        <div class="waiver" id="waiver" tabindex="0"></div>
+
+        <p class="section-title">¿Autorizas el uso de imagen?</p>
+        <div class="seg">
+          <label class="seg-opt"><input type="radio" name="imagen" value="Sí"><span>Sí, autorizo</span></label>
+          <label class="seg-opt"><input type="radio" name="imagen" value="No"><span>No autorizo</span></label>
+        </div>
+
+        <p class="section-title">Firma</p>
+        <p class="hint" id="firmaHint">Firma el participante si es mayor de edad; si es menor, firma su representante.</p>
+        <label class="field"><span>Nombre de quien firma</span><input name="sname" autocomplete="off" placeholder="Nombre completo"></label>
+        <label class="field"><span>Documento de quien firma</span><input name="sdoc" inputmode="numeric" autocomplete="off" placeholder="CC / TI / CE"></label>
+        <label class="consent"><input type="checkbox" name="accepted"><span id="declaracion">Confirmo que leí y acepto los términos de exoneración y responsabilidad.</span></label>
+
+        <div id="formError" class="alert err" hidden></div>
+        <button type="submit" class="btn" id="btnSend">Inscribirme y firmar</button>
+      </div>
+    </form>
+
+    <div id="done" class="done" hidden>
+      <div class="check">✓</div>
+      <h2 id="doneTitle">¡Listo!</h2>
+      <p>Tu inscripción y tu firma quedaron registradas en ACQUA NATACIÓN.</p>
+      <div class="summary" id="doneSummary"></div>
+    </div>
+  </main>
+
+  <footer>ACQUA NATACIÓN · Chía · Fundada el 17 de marzo de 2015</footer>
+</div>
+<script>
+const SUPABASE_URL      = "https://sokfsbzzmrpijkmlpmag.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNva2ZzYnp6bXJwaWprbWxwbWFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MzYyNDgsImV4cCI6MjA5NDIxMjI0OH0.bor86ohZ-u9sUl_Lr85vDHhaw7rMyCRuNiX1ZAHVSaM";
+
+const eventId = new URLSearchParams(location.search).get("evento");
+const $ = id => document.getElementById(id);
+const F = name => document.querySelector('#evForm [name="'+name+'"]');
+const digits = s => String(s||"").replace(/\D/g,"");
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const TIPOS = { travesia:"Travesía a nado", festival:"Festival", clinica:"Clínica", exhibicion:"Exhibición", otro:"Evento acuático" };
+let eventInfo = null, busy = false, verified = null, plantilla = "general", docFirmado = { texto:"", origen:"original" };
+
+async function rpc(fn, body){
+  const res = await fetch(SUPABASE_URL+"/rest/v1/rpc/"+fn, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json", apikey:SUPABASE_ANON_KEY, Authorization:"Bearer "+SUPABASE_ANON_KEY },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok) throw new Error("http_"+res.status);
+  return res.json();
+}
+function showError(msg){ $("stateLoading").hidden = true; $("evForm").hidden = true; $("stateError").textContent = msg; $("stateError").hidden = false; }
+function formError(msg){ const el = $("formError"); el.textContent = msg; el.hidden = false; el.scrollIntoView({behavior:"smooth", block:"center"}); }
+function setBusy(v){ busy = v; const b = $("btnSend"); b.disabled = v; b.textContent = v ? "Enviando…" : "Inscribirme y firmar"; }
+function fmtFecha(d){
+  if(!d) return "";
+  const dt = new Date(d+"T00:00:00");
+  if(isNaN(dt.getTime())) return d;
+  return new Intl.DateTimeFormat("es-CO",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(dt);
+}
+
+/* "Qué incluye": una línea por ítem; un título que termina en ":" abre un grupo nuevo */
+function parseIncluye(txt){
+  const groups = []; let cur = { title:"", items:[] };
+  String(txt||"").split(/\r?\n/).forEach(raw=>{
+    const line = raw.trim(); if(!line) return;
+    if(!/^[-•*]/.test(line) && /:\s*$/.test(line)){
+      if(cur.items.length || cur.title) groups.push(cur);
+      cur = { title: line.replace(/:\s*$/,""), items:[] };
+    } else cur.items.push(line.replace(/^[-•*]\s*/,""));
+  });
+  if(cur.items.length || cur.title) groups.push(cur);
+  return groups;
+}
+
+/*PLANTILLAS_START*/
+const PLANTILLAS_ORIGINALES = {"travesia": "# Exoneración de Responsabilidad y Condiciones de Participación – {{nombre}}\n\n**ACQUA NATACIÓN Escuela de Natación** (Chía, Cundinamarca) invita a nadadores de la escuela y a participantes externos a la **{{nombre}}**, que se realizará el {{fecha:día por confirmar}} en {{lugar:lugar por confirmar}}. Este documento explica en qué consiste el evento, qué incluye la inscripción y bajo qué condiciones participa cada persona. Léalo completo antes de inscribirse y firmar.\n\n## 1. Sobre el evento\n- **Naturaleza:** no es una competencia, es una travesía. No hay clasificación, premios por posición ni cronometraje oficial; el objetivo es completar el recorrido a ritmo propio, de forma segura y en compañía.\n- **Fecha y lugar:** {{fecha:por confirmar}}, {{lugar:por confirmar}}. Punto de encuentro y recorrido: serán confirmados por la organización.\n- **Horario exclusivo:** el espacio estará reservado para ACQUA NATACIÓN de {{horario}}, lo que permite realizar la travesía sin tráfico de otros usuarios.\n- **Organizador:** {{organizador}}.\n- **Valor de la inscripción:** {{valor}}.\n\n## 2. Qué incluye la inscripción\n{{incluye}}\n\n## 3. Condiciones de participación y exoneración de responsabilidad\n**3.1 Requisitos del participante.** Saber nadar en aguas abiertas y estar en condiciones físicas y de salud aptas para una travesía en mar. Cada participante es responsable de conocer su estado de salud y de consultar a su médico antes del evento. Debe informar a la organización cualquier condición médica relevante, seguir las indicaciones de salvavidas, buzos y personal de apoyo, y detener o abandonar la travesía cuando se le indique.\n**3.2 Menores de edad.** Los menores solo participan con autorización escrita de su padre, madre o representante legal, quien firma este documento en su nombre.\n**3.3 Naturaleza y riesgos de la actividad.** El participante entiende que nadar en mar abierto implica riesgos inherentes, entre ellos: oleaje y corrientes, cambios de clima, fatiga o agotamiento, hipotermia, calambres, picaduras o contacto con fauna marina, deshidratación, lesiones, y problemas de salud súbitos. Aun con las medidas de seguridad descritas, estos riesgos no pueden eliminarse por completo. El participante los conoce y los asume voluntariamente.\n**3.4 Medidas de seguridad.** La organización dispone de {{seguridad:personal capacitado y de las medidas de seguridad y cobertura propias del evento, que se informan en la sección 2 cuando aplican}}. Estas medidas buscan reducir los riesgos, pero no garantizan que no ocurran incidentes. El alcance y las condiciones de la póliza se rigen por el contrato con la aseguradora.\n**3.5 Cancelación, suspensión o modificación por causas ajenas a la organización.** La organización, de acuerdo con las autoridades y los equipos de seguridad, puede suspender, aplazar, acortar o modificar el recorrido o el horario cuando considere que hay riesgo para los participantes. Esto incluye tormenta eléctrica, mal estado del mar, sismo o falla geológica, avistamiento de tiburones u otra fauna peligrosa, orden de autoridad competente, o cualquier hecho de fuerza mayor o caso fortuito.\n**3.5.1 Política de no devolución.** Si el evento se suspende, se aplaza, se acorta o se cancela por las causas anteriores, **no habrá devolución del dinero de la inscripción**. Tampoco se devuelve el valor por no asistencia, retiro voluntario o abandono durante la travesía. La organización procurará, cuando sea posible, reprogramar la actividad o entregar el kit y la medalla a quienes se hayan inscrito.\n**3.6 Exoneración de responsabilidad.** Con la firma de este documento, el participante (o su representante legal, si es menor) declara que participa de manera libre y voluntaria, y exonera a ACQUA NATACIÓN, a sus administradores, instructores, empleados, colaboradores y patrocinadores de responsabilidad por daños, lesiones, pérdidas o perjuicios que se deriven de los riesgos inherentes descritos en este documento, o de su propia imprudencia o incumplimiento de las instrucciones de seguridad. Esta exoneración se otorga en la medida permitida por la ley colombiana y no cubre los daños causados por dolo o culpa grave de la organización.\n**3.7 Pertenencias personales.** Cada participante cuida sus objetos personales. La organización no se hace responsable por pérdida o daño de elementos no entregados formalmente en custodia.\n**3.8 Uso de imagen.** El participante autoriza el uso de fotografías y videos del evento tomados por la organización, con fines informativos y promocionales de ACQUA NATACIÓN, sin compensación económica. Si no lo autoriza, debe indicarlo por escrito antes del evento.\n**3.9 Tratamiento de datos personales.** Los datos suministrados en la inscripción se tratan conforme a la Ley 1581 de 2012 y a la política de tratamiento de datos de ACQUA NATACIÓN, para la gestión del evento, la póliza, la comunicación con los participantes y la entrega del certificado.\n\n---declaracion---\nDeclaro que he leído y entendido este documento, que conozco qué incluye el evento y los riesgos de nadar en mar abierto, que mi participación es voluntaria y que acepto las condiciones, la política de no devolución y la exoneración de responsabilidad aquí descritas.\n", "general": "# Exoneración de Responsabilidad y Condiciones de Participación – Eventos ACQUA NATACIÓN\n\n**ACQUA NATACIÓN Escuela de Natación** (Chía, Cundinamarca) organiza eventos acuáticos para su comunidad y para participantes externos. Este documento explica en qué consiste cada evento, qué incluye la inscripción y bajo qué condiciones participa cada persona. Léalo completo antes de inscribirse y firmar.\n\n## 1. Datos del evento\n| Nombre del evento | {{nombre}} |\n| Fecha y horario | {{fecha_horario:Por confirmar}} |\n| Lugar | {{lugar:Por confirmar}} |\n| Tipo de actividad | {{tipo}} |\n| ¿Es competitivo? | {{competitivo}} |\n| Organizador | {{organizador}} |\n| Valor de la inscripción | {{valor:Por confirmar}} |\n\n## 2. Qué incluye la inscripción\n{{incluye}}\n\n## 3. Condiciones de participación y exoneración de responsabilidad\n**3.1 Requisitos del participante.** Estar en condiciones físicas y de salud aptas para la actividad y contar con el nivel de natación que el evento requiere. Cada participante es responsable de conocer su estado de salud y de consultar a su médico antes del evento. Debe informar a la organización cualquier condición médica relevante, seguir las indicaciones del personal de la escuela y de seguridad, y detener la actividad cuando se le indique.\n**3.2 Menores de edad.** Los menores solo participan con autorización escrita de su padre, madre o representante legal, quien firma este documento en su nombre. Los menores deben estar bajo supervisión de un adulto responsable según lo indique la organización.\n**3.3 Naturaleza y riesgos de la actividad.** El participante entiende que las actividades acuáticas implican riesgos inherentes, entre ellos: fatiga o agotamiento, calambres, resbalones en áreas húmedas, lesiones, deshidratación, cambios de clima, problemas de salud súbitos y, en aguas abiertas, oleaje, corrientes y contacto con fauna. Aun con las medidas de seguridad dispuestas, estos riesgos no pueden eliminarse por completo. El participante los conoce y los asume voluntariamente.\n**3.4 Medidas de seguridad.** La organización dispone de personal capacitado y de las medidas de seguridad y cobertura propias de cada evento, que se informan en la sección 2 cuando aplican. Estas medidas buscan reducir los riesgos, pero no garantizan que no ocurran incidentes.\n**3.5 Suspensión, aplazamiento o modificación.** La organización puede suspender, aplazar, acortar o modificar el evento cuando considere que hay riesgo para los participantes, por ejemplo por mal clima, tormenta eléctrica, condiciones del agua, sismo, orden de autoridad competente, o cualquier hecho de fuerza mayor o caso fortuito.\n**3.6 Política de no devolución.** Si el evento se suspende, se aplaza, se acorta o se cancela por las causas anteriores, o si el participante no asiste o se retira, **no habrá devolución del dinero de la inscripción**. Cuando sea posible, la organización procurará reprogramar la actividad.\n**3.7 Exoneración de responsabilidad.** Con la firma de este documento, el participante (o su representante legal, si es menor) declara que participa de manera libre y voluntaria, y exonera a ACQUA NATACIÓN, a sus administradores, instructores, empleados, colaboradores y patrocinadores de responsabilidad por daños, lesiones, pérdidas o perjuicios que se deriven de los riesgos inherentes descritos en este documento, o de su propia imprudencia o incumplimiento de las instrucciones de seguridad. Esta exoneración se otorga en la medida permitida por la ley colombiana y no cubre los daños causados por dolo o culpa grave de la organización.\n**3.8 Pertenencias personales.** Cada participante cuida sus objetos personales. La organización no se hace responsable por pérdida o daño de elementos no entregados formalmente en custodia.\n**3.9 Uso de imagen.** El participante autoriza el uso de fotografías y videos del evento tomados por la organización, con fines informativos y promocionales de ACQUA NATACIÓN, sin compensación económica. Si no lo autoriza, debe indicarlo por escrito antes del evento.\n**3.10 Tratamiento de datos personales.** Los datos suministrados en la inscripción se tratan conforme a la Ley 1581 de 2012 y a la política de tratamiento de datos de ACQUA NATACIÓN, para la gestión del evento, la comunicación con los participantes y la entrega de reconocimientos.\n\n---declaracion---\nDeclaro que he leído y entendido este documento, que conozco qué incluye el evento y los riesgos de la actividad, que mi participación es voluntaria y que acepto las condiciones, la política de no devolución y la exoneración de responsabilidad aquí descritas.\n"};
+/*PLANTILLAS_END*/
+
+/* Motor del documento: texto con marcas simples + datos del evento ({{nombre}}, {{fecha}}, ...) */
+const RE_PH = /\{\{\s*([a-z_]+)\s*(?::([^}]*))?\}\}/gi;
+function valoresEvento(info){
+  const groups = parseIncluye(info.incluye);
+  const seg = groups.find(g=>/segur/i.test(g.title) && g.items.length);
+  const fecha = fmtFecha(info.date), horario = String(info.horario||"").trim();
+  return {
+    nombre: info.name || "el evento", fecha, lugar: info.place || "", horario,
+    fecha_horario: fecha + (fecha && horario ? ", " : "") + horario,
+    tipo: TIPOS[info.tipo] || TIPOS.otro, competitivo: info.competitivo==="Si" ? "Sí" : "No",
+    organizador: info.organizador || "ACQUA NATACIÓN Escuela de Natación", valor: String(info.valor||"").trim(),
+    seguridad: seg ? "las siguientes medidas de seguridad y acompañamiento: "+seg.items.map(i=>i.replace(/[.\s]+$/,"")).join("; ") : "",
+    incluye: groups.map(g=>g.items.join("; ")).join("; ")
+  };
+}
+/* Reemplaza los {{...}} de una línea. Si falta un dato y no tiene valor por defecto ({{dato:valor}}), la línea se omite. */
+function rellenar(linea, vals, soltar){
+  const partes = []; let ultimo = 0, soltada = false;
+  linea.replace(RE_PH, (m, nombre, def, pos)=>{
+    partes.push(linea.slice(ultimo, pos)); ultimo = pos + m.length;
+    const k = nombre.toLowerCase();
+    if(!Object.prototype.hasOwnProperty.call(vals, k)){ partes.push(m); return m; }
+    let v = vals[k];
+    if(!v){ if(def!==undefined) v = def.trim(); else if(soltar) soltada = true; }
+    partes.push(v || ""); return m;
+  });
+  partes.push(linea.slice(ultimo));
+  if(soltada) return null;
+  const plain = partes.join("");
+  return { plain: plain.replace(/\*\*/g,""), html: esc(plain).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>") };
+}
+function renderPlantilla(texto, info){
+  const vals = valoresEvento(info), groups = parseIncluye(info.incluye);
+  const trozos = String(texto||"").split(/^\s*-{3}\s*declaracion\s*-{3}\s*$/im);
+  const html = [], text = []; let modo = "";
+  const cerrar = ()=>{ if(modo==="ul") html.push("</ul>"); else if(modo==="table") html.push("</table>"); modo = ""; };
+  trozos[0].split(/\r?\n/).forEach(raw=>{
+    const linea = raw.trim(); if(!linea) return;
+    if(linea==="{{incluye}}"){
+      cerrar();
+      if(groups.length) groups.forEach(g=>{
+        if(g.title){ html.push('<p class="g-title">'+esc(g.title)+'</p>'); text.push(g.title+":"); }
+        html.push("<ul>"+g.items.map(i=>"<li>"+esc(i)+"</li>").join("")+"</ul>"); g.items.forEach(i=>text.push("- "+i));
+      });
+      else { html.push("<p>No se informaron elementos adicionales para este evento.</p>"); text.push("No se informaron elementos adicionales para este evento."); }
+      return;
+    }
+    if(linea[0]==="|"){
+      const celdas = linea.replace(/^\||\|$/g,"").split("|").map(c=>c.trim());
+      const llenas = celdas.map(c=>rellenar(c, vals, true));
+      if(llenas.some(x=>x===null)) return;
+      if(modo!=="table"){ cerrar(); html.push("<table>"); modo = "table"; }
+      html.push("<tr>"+llenas.map(x=>"<td>"+x.html+"</td>").join("")+"</tr>"); text.push(llenas.map(x=>x.plain).join(": "));
+      return;
+    }
+    let m;
+    if((m = linea.match(/^(#{1,2})\s+(.*)$/))){
+      const f = rellenar(m[2], vals, true); if(!f) return; cerrar();
+      html.push(m[1].length===1 ? "<h4>"+f.html+"</h4>" : "<h5>"+f.html+"</h5>");
+      if(m[1].length>1) text.push(""); text.push(f.plain); return;
+    }
+    if((m = linea.match(/^-\s+(.*)$/))){
+      const f = rellenar(m[1], vals, true); if(!f) return;
+      if(modo!=="ul"){ cerrar(); html.push("<ul>"); modo = "ul"; }
+      html.push("<li>"+f.html+"</li>"); text.push("- "+f.plain); return;
+    }
+    const f = rellenar(linea, vals, true); if(!f) return; cerrar();
+    html.push("<p>"+f.html+"</p>"); text.push(f.plain);
+  });
+  cerrar();
+  const d = (trozos[1]||"").trim() ? rellenar(trozos[1].trim().replace(/\s*\n\s*/g," "), vals, false) : null;
+  const declaracion = d ? d.plain : "Confirmo que leí y acepto los términos de exoneración y responsabilidad.";
+  return { html: html.join(""), text: text.join("\n"), declaracion };
+}
+/* Documento que ve quien se inscribe: el personalizado en la app, o el original de fábrica */
+function buildWaiver(info){
+  const tpl = info.tipo==="travesia" ? "travesia" : "general";
+  const custom = (typeof info.plantilla==="string" && info.plantilla.trim()) ? info.plantilla : null;
+  const r = renderPlantilla(custom || PLANTILLAS_ORIGINALES[tpl], info);
+  return { tpl, origen: custom ? "personalizada" : "original", html: r.html, text: r.text, declaracion: r.declaracion };
+}
+
+/* Edad, menor de edad y firmante */
+function ageFrom(s){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(s||"")) return null;
+  const b = new Date(s+"T00:00:00"); if(isNaN(b.getTime())) return null;
+  const t = new Date(); let a = t.getFullYear()-b.getFullYear(); const m = t.getMonth()-b.getMonth();
+  if(m<0 || (m===0 && t.getDate()<b.getDate())) a--;
+  return (a>=0 && a<=120) ? a : null;
+}
+function isMenor(){ const a = ageFrom(F("pbirth").value); return a!==null && a<18; }
+function syncSigner(){
+  const m = isMenor(), sn = F("sname"), sd = F("sdoc");
+  $("boxMenor").hidden = !m;
+  if(sn.dataset.touched!=="1") sn.value = m ? F("tname").value : F("pname").value;
+  if(sd.dataset.touched!=="1") sd.value = m ? F("tdoc").value : F("pdoc").value;
+  $("firmaHint").textContent = m ? "El participante es menor de edad: firma su representante (padre, madre o acudiente)." : "Firma el participante (mayor de edad).";
+}
+
+/* Alumno: verificar y precargar sus datos */
+function prefill(p){
+  p = p || {};
+  const set = (n,v)=>{ const el = F(n); if(el && !el.value && v) el.value = String(v); };
+  set("pdoc",p.documento); if(/^\d{4}-\d{2}-\d{2}$/.test(p.nacimiento||"")) set("pbirth",p.nacimiento);
+  set("pphone",p.telefono); set("pemail",p.correo); set("tname",p.tutor_nombre); set("tphone",p.tutor_telefono);
+  set("peps",p.eps); set("pheight",p.estatura); set("pweight",p.peso);
+  const sel = (n,v)=>{ const el = F(n); if(!el || el.value || !v) return; const o = [...el.options].find(x=>x.value===String(v)); if(o) el.value = o.value; };
+  sel("pblood",p.sangre); sel("pshirt",p.camiseta);
+}
+function resetVerificacion(){
+  verified = null; F("pname").readOnly = false;
+  $("verifOk").hidden = true; $("verifErr").hidden = true;
+  if(F("tipo") && document.querySelector('input[name="tipo"]:checked').value==="alumno") $("boxRest").hidden = true;
+}
+async function verificar(){
+  if(busy) return;
+  $("verifErr").hidden = true; $("verifOk").hidden = true;
+  const code = F("code").value.trim(), verif = F("verif").value.trim();
+  const err = m=>{ $("verifErr").textContent = m; $("verifErr").hidden = false; };
+  if(!code || digits(verif).length<6) return err("Escribe el código de tu carnet y tu documento o teléfono (mínimo 6 números).");
+  const btn = $("btnVerificar"); btn.disabled = true; btn.textContent = "Verificando…"; busy = true;
+  try{
+    const r = await rpc("evento_buscar_alumno",{ p_event_id:eventId, p_code:code, p_verificacion:verif });
+    if(r.status==="not_found") return err("No encontramos un alumno con ese código y ese documento o teléfono. Revisa los datos o inscríbete como persona externa.");
+    if(r.status!=="ok") return err("Revisa el código y el documento o teléfono e intenta de nuevo.");
+    if(r.ya_firmo) return err(r.name+" ya está inscrito y firmado en este evento. ¡No tienes que hacer nada más!");
+    verified = { id:r.id, name:r.name };
+    F("pname").value = r.name; F("pname").readOnly = true;
+    prefill(r.perfil);
+    $("verifOk").textContent = "Hola, "+r.name+". Revisa y completa tus datos para inscribirte."; $("verifOk").hidden = false;
+    $("boxRest").hidden = false; syncSigner();
+  }catch(e){
+    err("No pudimos verificar. Revisa tu internet e intenta de nuevo.");
+  }finally{
+    btn.disabled = false; btn.textContent = "Verificar mis datos"; busy = false;
+  }
+}
+
+async function init(){
+  if(!eventId){ showError("Este enlace no es válido. Pídenos de nuevo el enlace del evento."); return; }
+  try{ eventInfo = await rpc("evento_publico_info",{ p_event_id:eventId }); }
+  catch(e){ showError("No pudimos conectar. Revisa tu internet e intenta de nuevo en unos minutos."); return; }
+  if(!eventInfo){ showError("No encontramos este evento. Es posible que el enlace esté incompleto o que el evento ya no exista."); return; }
+  $("evName").textContent = eventInfo.name || "Evento ACQUA";
+  $("evMeta").textContent = [fmtFecha(eventInfo.date), eventInfo.place].filter(Boolean).join(" · ");
+  document.title = (eventInfo.name||"Evento")+" — ACQUA NATACIÓN";
+  const w = buildWaiver(eventInfo); plantilla = w.tpl;
+  $("waiver").innerHTML = w.html; $("declaracion").textContent = w.declaracion;
+  docFirmado = { texto: w.text+"\n\n"+w.declaracion, origen: w.origen };
+  $("stateLoading").hidden = true; $("evForm").hidden = false;
+}
+
+document.querySelectorAll('input[name="tipo"]').forEach(r=>r.addEventListener("change",()=>{
+  const alumno = document.querySelector('input[name="tipo"]:checked').value==="alumno";
+  $("boxAlumno").hidden = !alumno;
+  if(alumno){ $("boxRest").hidden = !verified; F("pname").readOnly = !!verified; }
+  else { F("pname").readOnly = false; $("boxRest").hidden = false; syncSigner(); }
+}));
+$("btnVerificar").addEventListener("click", verificar);
+$("evForm").addEventListener("input", e=>{
+  const n = e.target.name;
+  if(n==="code" || n==="verif"){ if(verified) resetVerificacion(); return; }
+  if(n==="sname" || n==="sdoc"){ e.target.dataset.touched = "1"; return; }
+  if(["pname","pdoc","pbirth","tname","tdoc"].includes(n)) syncSigner();
+});
+$("evForm").addEventListener("change", e=>{ if(e.target.name==="pbirth") syncSigner(); });
+
+$("evForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  if(busy) return;
+  $("formError").hidden = true;
+  const tipo = document.querySelector('input[name="tipo"]:checked').value;
+  if(tipo==="alumno" && !verified){ await verificar(); return; }
+  const v = n => String(F(n).value||"").trim();
+  const age = ageFrom(v("pbirth")), menor = age!==null && age<18;
+  if(v("pname").length<3) return formError("Escribe el nombre completo del participante.");
+  if(digits(v("pdoc")).length<5) return formError("Escribe el número de documento del participante.");
+  if(age===null) return formError("Escribe una fecha de nacimiento válida.");
+  if(digits(v("pphone")).length<7) return formError("Escribe un teléfono válido.");
+  if(v("pemail") && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v("pemail"))) return formError("El correo no parece válido. Revísalo o déjalo en blanco.");
+  if(v("emname").length<3) return formError("Escribe el nombre de tu contacto de emergencia.");
+  if(digits(v("emphone")).length<7) return formError("Escribe el teléfono de tu contacto de emergencia.");
+  if(menor){
+    if(v("tname").length<3) return formError("Escribe el nombre completo del representante (padre, madre o acudiente).");
+    if(v("trel").length<2) return formError("Escribe el parentesco del representante.");
+    if(digits(v("tdoc")).length<5) return formError("Escribe el documento del representante.");
+    if(digits(v("tphone")).length<7) return formError("Escribe el teléfono del representante.");
+  }
+  const imagen = document.querySelector('input[name="imagen"]:checked');
+  if(!imagen) return formError("Indica si autorizas o no el uso de imagen.");
+  if(v("sname").length<3) return formError("Escribe el nombre de quien firma.");
+  if(digits(v("sdoc")).length<5) return formError("Escribe el número de documento de quien firma.");
+  if(!F("accepted").checked) return formError("Debes marcar que aceptas la exoneración para continuar.");
+
+  const datos = { documento:v("pdoc"), nacimiento:v("pbirth"), edad:String(age), menor, telefono:v("pphone"), correo:v("pemail"),
+    estatura:v("pheight"), peso:v("pweight"), sangre:v("pblood"), camiseta:v("pshirt"), eps:v("peps"), notas:v("pnotes"),
+    emergencia_nombre:v("emname"), emergencia_telefono:v("emphone"), imagen:imagen.value, plantilla, plantilla_origen:docFirmado.origen, texto_firmado:docFirmado.texto };
+  if(menor){ datos.tutor_nombre=v("tname"); datos.tutor_parentesco=v("trel"); datos.tutor_documento=v("tdoc"); datos.tutor_telefono=v("tphone"); }
+  Object.keys(datos).forEach(k=>{ if(datos[k]==="") delete datos[k]; });
+
+  setBusy(true);
+  try{
+    const signedAt = new Intl.DateTimeFormat("es-CO",{dateStyle:"medium",timeStyle:"short"}).format(new Date());
+    const r2 = await rpc("evento_inscribir",{
+      p_event_id:eventId, p_student_id: tipo==="alumno" ? verified.id : "",
+      p_guest_name: tipo==="externo" ? v("pname") : "", p_guest_age: String(age), p_guest_phone: tipo==="externo" ? v("pphone") : "",
+      p_signer_name:v("sname"), p_signer_document:v("sdoc"), p_signed_at:signedAt, p_accepted:true, p_datos:datos
+    });
+    if(r2.status==="duplicate"){ setBusy(false); return formError("Ya hay una inscripción firmada con esos datos para este evento. Si crees que es un error, escríbenos."); }
+    if(r2.status==="event_not_found"){ setBusy(false); return formError("Este evento ya no está disponible. Escríbenos para ayudarte."); }
+    if(r2.status!=="ok"){ setBusy(false); return formError("Revisa los datos e intenta de nuevo."); }
+    const nombreFinal = tipo==="alumno" ? verified.name : v("pname");
+    $("doneTitle").textContent = "¡Listo, "+(nombreFinal.split(" ")[0]||"")+"!";
+    const rows = [["Evento", eventInfo.name||""],["Participante", nombreFinal],["Firmó", v("sname")+" · "+signedAt]];
+    $("doneSummary").innerHTML = "";
+    rows.forEach(([k,val])=>{ const d=document.createElement("div"); const b=document.createElement("b"); b.textContent=k; d.appendChild(b); d.appendChild(document.createTextNode(val)); $("doneSummary").appendChild(d); });
+    $("evForm").hidden = true; $("done").hidden = false;
+    window.scrollTo({top:0,behavior:"smooth"});
+  }catch(err){
+    setBusy(false);
+    formError("No pudimos enviar tu inscripción. Revisa tu internet e intenta de nuevo.");
+  }
+});
+
+init();
+
+</script>
+</body>
+</html>
