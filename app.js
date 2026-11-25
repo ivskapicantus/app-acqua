@@ -1015,7 +1015,7 @@
         <td data-label="Vigencia"><div class="date-cell ${venceCls}">${endDate?"Vence "+shortDate(endDate):"Sin iniciar"}</div><small class="date-cell" style="font-size:.72rem">${(()=>{ const ini=inicioPlan(student); return ini?"Desde "+shortDate(ini):"Inicia con la 1ra clase"; })()}</small></td>
         <td data-label="Clases"><div class="classes-cell"><strong>${remaining}</strong><small>de ${total} · ${used} usadas</small></div><div class="progress ${progCls}" aria-hidden="true"><span style="width:${progress}%"></span></div></td>
         <td data-label="Estado">${studentStatusBadge(student)}</td>
-        <td class="actions" data-label=""><button class="btn icon go" type="button" title="Registrar clase" aria-label="Registrar clase" data-action="register-class" data-id="${id}">${icon("check")}</button><button class="btn icon" type="button" title="Registrar pago" aria-label="Registrar pago" data-action="open-pay-modal" data-id="${id}">${icon("dollar")}</button><button class="btn icon" type="button" title="Renovar" aria-label="Renovar" data-action="renew-student" data-id="${id}">${icon("refresh")}</button>${menu}</td>
+        <td class="actions" data-label=""><button class="btn icon go" type="button" title="Registrar clase" aria-label="Registrar clase" data-action="register-class" data-id="${id}">${icon("check")}</button><button class="btn icon" type="button" title="Registrar pago" aria-label="Registrar pago" data-action="open-pay-modal" data-id="${id}">${icon("dollar")}</button><button class="btn icon" type="button" title="Renovar" aria-label="Renovar" data-action="renew-student" data-id="${id}">${icon("refresh")}</button><button class="btn icon wa" type="button" title="Enviar carnet por WhatsApp" aria-label="Enviar carnet por WhatsApp" data-action="send-carnet-whatsapp" data-id="${id}">${icon("card")}</button>${menu}</td>
       </tr>`;
     }).join("")}</tbody></table></div>`;
   }
@@ -1144,7 +1144,7 @@
       </div>
       <div style="position:absolute;bottom:3%;left:0;right:0;text-align:center;font-size:.6rem;color:#6688bb;letter-spacing:.22em;font-weight:800">DESDE 2015</div>
     </article>
-    <button class="btn outline no-print" type="button" data-action="print-one-card" data-id="${escapeHtml(student.id)}">${icon("print")}Imprimir carnet</button>
+    <div class="carnet-btns no-print"><button class="btn wa" type="button" data-action="send-carnet-whatsapp" data-id="${escapeHtml(student.id)}">${icon("message")}Enviar por WhatsApp</button><button class="btn outline" type="button" data-action="print-one-card" data-id="${escapeHtml(student.id)}">${icon("print")}Imprimir</button></div>
     </div>`;
   }
 
@@ -1719,7 +1719,7 @@
     // Overlay de confirmacion - el botón recarga la vista limpia
     const overlayConf=document.createElement("div");
     overlayConf.id="confirm-overlay";
-    overlayConf.innerHTML=`<div class="confirm-layer"><div class="checkin-modal"><div class="checkin-top"><div class="checkin-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div><h2 class="checkin-name">Alumno registrado</h2><p class="checkin-code">${escapeHtml(name)}</p><svg class="wave" viewBox="0 0 400 34" preserveAspectRatio="none"><path d="M0 18 C70 2 130 34 200 18 S330 2 400 18 V34 H0Z" fill="#fff"/></svg></div><div class="checkin-body" style="margin-top:8px"><p style="font-size:.9rem;color:var(--muted);margin:0 0 6px">Codigo de carnet asignado</p><p style="font-family:var(--font-display);font-size:2rem;font-weight:700;letter-spacing:.04em;color:var(--navy-900);margin:0 0 18px">${escapeHtml(code)}</p></div><div class="checkin-actions"><button id="btnRegisterAnother" class="btn primary lg" type="button">${icon("userPlus")}Registrar otro alumno</button></div></div></div>`;
+    overlayConf.innerHTML=`<div class="confirm-layer"><div class="checkin-modal"><div class="checkin-top"><div class="checkin-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div><h2 class="checkin-name">Alumno registrado</h2><p class="checkin-code">${escapeHtml(name)}</p><svg class="wave" viewBox="0 0 400 34" preserveAspectRatio="none"><path d="M0 18 C70 2 130 34 200 18 S330 2 400 18 V34 H0Z" fill="#fff"/></svg></div><div class="checkin-body" style="margin-top:8px"><p style="font-size:.9rem;color:var(--muted);margin:0 0 6px">Codigo de carnet asignado</p><p style="font-family:var(--font-display);font-size:2rem;font-weight:700;letter-spacing:.04em;color:var(--navy-900);margin:0 0 18px">${escapeHtml(code)}</p></div><div class="checkin-actions" style="display:grid;gap:10px"><button class="btn wa lg" type="button" data-action="send-carnet-whatsapp" data-id="${escapeHtml(student.id)}">${icon("message")}Enviar carnet por WhatsApp</button><button id="btnRegisterAnother" class="btn primary lg" type="button">${icon("userPlus")}Registrar otro alumno</button></div></div></div>`;
     document.body.appendChild(overlayConf);
     document.getElementById("btnRegisterAnother").onclick=function(){
       document.getElementById("confirm-overlay")?.remove();

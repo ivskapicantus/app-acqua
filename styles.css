@@ -1729,3 +1729,18 @@ div.field.incl-field { display: grid; gap: 8px; font-size: .8rem; font-weight: 7
   .panel-title > div { min-width: 0; }
   .panel-header h3 { overflow-wrap: anywhere; }
 }
+
+/* ===== V10: enviar carnet por WhatsApp visible ===== */
+.btn.wa { background: var(--wa, #25D366); color: #fff; border-color: transparent; box-shadow: 0 6px 16px -8px rgba(18,140,75,.6); }
+.btn.wa:hover { background: #1EBE5A; color: #fff; }
+.btn.wa svg { color: #fff; }
+.students-list-panel td.actions .btn.icon.wa { background: rgba(37,211,102,.12); color: #128C4B; box-shadow: inset 0 0 0 1px rgba(37,211,102,.35); }
+.students-list-panel td.actions .btn.icon.wa svg { color: #128C4B; }
+.students-list-panel td.actions .btn.icon.wa:hover { background: #25D366; color: #fff; box-shadow: none; }
+.students-list-panel td.actions .btn.icon.wa:hover svg { color: #fff; }
+.carnet-btns { display: flex; gap: 8px; width: 270px; }
+.carnet-item .carnet-btns .btn { width: auto; flex: 1 1 0; min-width: 0; padding-left: 10px; padding-right: 10px; white-space: nowrap; }
+.carnet-item .carnet-btns .btn.wa { flex: 1.5 1 0; }
+.carnet-item .carnet-btns .btn { font-size: .8rem; gap: 6px; padding-left: 8px; padding-right: 8px; }
+.carnet-item .carnet-btns .btn svg { width: 15px; height: 15px; }
+.carnet-item .carnet-btns .btn.wa { flex: 1.75 1 0; }
