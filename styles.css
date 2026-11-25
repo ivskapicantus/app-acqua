@@ -1744,3 +1744,17 @@ div.field.incl-field { display: grid; gap: 8px; font-size: .8rem; font-weight: 7
 .carnet-item .carnet-btns .btn { font-size: .8rem; gap: 6px; padding-left: 8px; padding-right: 8px; }
 .carnet-item .carnet-btns .btn svg { width: 15px; height: 15px; }
 .carnet-item .carnet-btns .btn.wa { flex: 1.75 1 0; }
+
+/* ===== V11: enviar firma visible ===== */
+.students-list-panel td.actions .btn.icon.sign { background: #FFF7ED; color: #C2410C; box-shadow: inset 0 0 0 1px rgba(234,88,12,.35); }
+.students-list-panel td.actions .btn.icon.sign svg { color: #C2410C; }
+.students-list-panel td.actions .btn.icon.sign:hover { background: #EA580C; box-shadow: none; }
+.students-list-panel td.actions .btn.icon.sign:hover svg { color: #fff; }
+.students-list-panel td.actions .btn.icon.sign.is-done { background: #ECFDF3; box-shadow: inset 0 0 0 1px rgba(22,163,74,.3); }
+.students-list-panel td.actions .btn.icon.sign.is-done svg { color: #15803D; }
+.students-list-panel td.actions .btn.icon.sign.is-done:hover { background: #ECFDF3; }
+@media (max-width: 760px) {
+  .students-list-panel td.actions { flex-wrap: nowrap; gap: 6px; }
+  .students-list-panel td.actions .btn.icon { min-width: 40px; min-height: 42px; padding: 0 7px; flex: 0 1 auto; }
+  .students-list-panel td.actions details.menu .btn.icon { min-width: 36px; }
+}
