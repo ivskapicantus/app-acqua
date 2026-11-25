@@ -18,6 +18,32 @@ canvas#carnetCanvas{border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,.4);max-
 .error{color:#EF4444;text-align:center;font-size:.88rem;max-width:270px}
 .footer{font-size:.7rem;color:#9CA3AF;text-align:center}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#071A3F">
+<style id="acqua-theme">/* Tema ACQUA "Agua premium" v2 — capa visual unificada */
+:root{--a-navy:#071A3F;--a-blue:#1A56DB;--a-blue2:#2F6FEB;--a-blue3:#1240A8;--a-cyan:#22C3F0;--a-cyan2:#A5E8FB;--a-ink:#0A1A33;--a-ink2:#2E4160;--a-muted:#5A6B85;--a-line:#E2E9F2;--a-soft:#F6F9FD;--a-ok:#0E9F6E;
+--a-water:radial-gradient(120% 80% at 100% 0%,rgba(34,195,240,.45) 0%,rgba(34,195,240,0) 55%),radial-gradient(90% 90% at 0% 100%,rgba(47,111,235,.55) 0%,rgba(47,111,235,0) 60%),linear-gradient(150deg,#071A3F 0%,#0B2A63 55%,#1240A8 100%)}
+body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif !important;background:radial-gradient(900px 420px at 90% -10%,rgba(34,195,240,.16),transparent 60%),radial-gradient(700px 400px at -10% 110%,rgba(26,86,219,.08),transparent 60%),#F2F6FB !important;color:var(--a-ink);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit}
+@keyframes a-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes a-pop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+canvas#carnetCanvas{border-radius:22px !important;box-shadow:0 30px 60px -20px rgba(4,15,38,.55) !important;animation:a-rise .6s cubic-bezier(.22,1,.36,1)}
+.btns{width:300px !important}
+.btn{border-radius:999px !important;min-height:52px;font-weight:800 !important;transition:transform .15s,box-shadow .15s !important}
+.btn svg{width:19px;height:19px}
+.btn-primary{background:linear-gradient(180deg,#2F6FEB,#1A56DB) !important;box-shadow:0 12px 26px -8px rgba(26,86,219,.65)}
+.btn-wa{background:#1FAF54 !important;box-shadow:0 12px 26px -10px rgba(31,175,84,.7)}
+.btn:hover{opacity:1 !important;transform:translateY(-1px)}
+.loading{display:flex;flex-direction:column;align-items:center;gap:14px;color:var(--a-muted) !important}
+.loading::before{content:"";width:38px;height:38px;border-radius:50%;border:3px solid rgba(26,86,219,.15);border-top-color:var(--a-blue);animation:a-spin .8s linear infinite}
+@keyframes a-spin{to{transform:rotate(360deg)}}
+.error{background:rgba(229,72,77,.08);border:1px solid rgba(229,72,77,.3);border-radius:14px;padding:14px 16px;color:#B42318 !important;max-width:320px !important}
+.footer{color:#94A3B8 !important;letter-spacing:.06em}
+</style>
 </head>
 <body>
 
@@ -25,8 +51,8 @@ canvas#carnetCanvas{border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,.4);max-
 <div id="errorBox" class="error" style="display:none"></div>
 <canvas id="carnetCanvas" width="540" height="900" style="display:none"></canvas>
 <div class="btns" id="btns" style="display:none">
-  <button class="btn btn-primary" id="btnGuardar">⬇ Guardar imagen del carnet</button>
-  <button class="btn btn-wa" id="btnWA">📲 Compartir por WhatsApp</button>
+  <button class="btn btn-primary" id="btnGuardar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Guardar imagen del carnet</button>
+  <button class="btn btn-wa" id="btnWA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20l1.3-5.2A8.4 8.4 0 1 1 21 11.5Z"/></svg>Compartir por WhatsApp</button>
 </div>
 <p class="footer">ACQUA NATACIÓN · Tu carnet digital oficial</p>
 
@@ -85,7 +111,8 @@ function roundRect(ctx,x,y,w,h,r){
 }
 
 const PRACTICA_LIBRE_PLANS=["1_practica","8_practicas"];
-function diasVigenciaPlan(planType){ return PRACTICA_LIBRE_PLANS.includes(planType) ? 30 : 35; }
+const DIAS_VIGENCIA={"1_practica":30,"1_grupal":30,"1_matronat":30,"8_practicas":30,"5_vacacional":30,"obsequio_1":30,"obsequio_2":30,"obsequio_3":30,"anual":365,"anual_4":365,"anual_9":365,"anual_13":365};
+function diasVigenciaPlan(planType){ return DIAS_VIGENCIA[planType] || 30; }
 
 async function drawCarnet(student){
   const canvas=document.getElementById("carnetCanvas");
@@ -150,7 +177,7 @@ async function drawCarnet(student){
   // 6. Días restantes
   ctx.fillStyle="#0a2472";
   ctx.font=`600 ${12*scale}px -apple-system,BlinkMacSystemFont,Arial,sans-serif`;
-  ctx.fillText("Tienes "+diasVigenciaPlan(student.plan_type)+" dias para consumir tu plan",cw/2,nameY+(nombre2?98:72)*scale);
+  (function(){ const d=diasVigenciaPlan(student.plan_type); const y=nameY+(nombre2?96:72)*scale; ctx.fillText(d>=365?"Vigencia: 1 año":"Vigencia: "+d+" días",cw/2,y,150*scale); ctx.font=`500 ${10*scale}px -apple-system,BlinkMacSystemFont,Arial,sans-serif`; ctx.fillStyle="#33508f"; ctx.fillText("desde tu primera clase",cw/2,y+13*scale,150*scale); })();
 
   // 7. "DESDE 2015"
   ctx.fillStyle="#6688bb";

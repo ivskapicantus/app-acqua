@@ -24,21 +24,25 @@
     "matronat_4":    "Matronatacion 4 clases/mes",
     "matronat_8":    "Matronatacion 8 clases/mes",
     "matronat_personalizada_4": "4 clases de Matronatacion personalizadas",
-    "anual_4":       "Plan anual 4 clases",
-    "anual_9":       "Plan anual 9 clases",
-    "anual_13":      "Plan anual 13 clases",
+    "anual_4":       "Plan anual 4 clases/mes",
+    "anual_9":       "Plan anual 9 clases/mes",
+    "anual_13":      "Plan anual 13 clases/mes",
     "personalizado_4": "Personalizado 4 clases",
     "personalizado_8": "Personalizado 8 clases",
-    "anual":         "Plan anual",
+    "anual":         "Plan anual (sin definir)",
     "obsequio_1":    "Obsequio 1 clase",
     "obsequio_2":    "Obsequio 2 clases",
     "obsequio_3":    "Obsequio 3 clases",
     custom:          "Personalizado",
   };
-  const PLAN_CLASSES = { "1_practica":1,"1_grupal":1,"1_matronat":1,"4":4,"9":9,"8_practicas":8,"13":13,"13_equipo":13,"5_vacacional":5,"matronat_4":4,"matronat_8":8,"matronat_personalizada_4":4,"anual_4":208,"anual_9":468,"anual_13":676,"personalizado_4":4,"personalizado_8":8,"anual":100,"obsequio_1":1,"obsequio_2":2,"obsequio_3":3 };
+  const PLAN_CLASSES = { "1_practica":1,"1_grupal":1,"1_matronat":1,"4":4,"9":9,"8_practicas":8,"13":13,"13_equipo":13,"5_vacacional":5,"matronat_4":4,"matronat_8":8,"matronat_personalizada_4":4,"anual_4":48,"anual_9":108,"anual_13":156,"personalizado_4":4,"personalizado_8":8,"anual":100,"obsequio_1":1,"obsequio_2":2,"obsequio_3":3 };
   /* Planes de "practica libre" — usan 30 dias de vigencia en el carnet en vez de 35 */
   const PRACTICA_LIBRE_PLANS = ["1_practica","8_practicas"];
-  function diasVigenciaPlan(planType){ return PRACTICA_LIBRE_PLANS.includes(planType) ? 30 : 35; }
+  function diasVigenciaPlan(planType){ return (typeof DIAS_PLAN_VIGENCIA!=="undefined"&&DIAS_PLAN_VIGENCIA[planType]) || 30; }
+  /* Planes anuales: 12 meses x 4, 9 o 13 clases. Se descuentan del total del
+     año con cada clase y NO se reinician con la renovacion mensual. */
+  const PLANES_ANUALES = ["anual_4","anual_9","anual_13","anual"];
+  function esPlanAnual(student){ return !!student && PLANES_ANUALES.includes(student.planType); }
 
   const app               = document.querySelector("#app");
   const toast             = document.querySelector("#toast");
@@ -60,6 +64,8 @@
   let cardSearch          = "";
   let reportsSearch       = "";
   let eventEnrollSearch   = "";
+  let expiringFilter      = "all";
+  let expiringSearch      = "";
   let useJsQr             = false;
 
   // Cliente Supabase JS (cargado vía CDN en index.html)
@@ -102,11 +108,50 @@
     user:      '<path d="M20 21a8 8 0 0 0-16 0" /><circle cx="12" cy="7" r="4" />',
     file:      '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" />',
     lock:      '<rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />',
+    search:    '<circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />',
+    alert:     '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4" /><path d="M12 17h.01" />',
+    clock:     '<circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />',
+    zap:       '<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z" />',
+    activity:  '<path d="M22 12h-4l-3 9L9 3l-3 9H2" />',
+    chart:     '<path d="M3 3v18h18" /><path d="M7 15l4-4 3 3 5-6" />',
+    users:     '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />',
+    userPlus:  '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" />',
+    card:      '<rect x="2" y="4" width="20" height="16" rx="3" /><circle cx="8.5" cy="11" r="2.5" /><path d="M5 16.5c.8-1.5 2-2.2 3.5-2.2s2.7.7 3.5 2.2M15 9h4M15 13h3" />',
+    more:      '<circle cx="5" cy="12" r="1.4" /><circle cx="12" cy="12" r="1.4" /><circle cx="19" cy="12" r="1.4" />',
+    pause:     '<rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" />',
+    play:      '<path d="m7 4 13 8-13 8Z" />',
+    camera:    '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z" /><circle cx="12" cy="13" r="3.5" />',
+    info:      '<circle cx="12" cy="12" r="9" /><path d="M12 16v-4" /><path d="M12 8h.01" />',
+    qr:        '<rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3" />',
+    chevronLeft:  '<path d="m15 18-6-6 6-6" />',
+    chevronRight: '<path d="m9 18 6-6-6-6" />',
+    list:      '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />',
+    sparkles:  '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9Z" /><path d="M19 16v4M17 18h4" />',
+    flag:      '<path d="M4 22V4" /><path d="M4 4h12l-2 4 2 4H4" />',
+    copy:      '<rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />',
+    eye:       '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" />',
+    trophy:    '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z" /><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3" />',
+    shield:    '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" />',
+    shuffle:   '<path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />',
+    gift:      '<rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v13M19 12v9H5v-9" /><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5" />',
+    minus:     '<path d="M5 12h14" />',
+    undo:      '<path d="M9 14 4 9l5-5" /><path d="M4 9h11a5 5 0 0 1 0 10h-3" />',
+    sliders:   '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" />',
   };
 
   function icon(name) {
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || ""}</svg>`;
   }
+  function initials(name){ const p=String(name||"").trim().split(/\s+/).filter(Boolean); return (((p[0]||"?")[0]||"?")+(p[1]?p[1][0]:"")).toUpperCase(); }
+  function avatar(name,cls=""){ const s=String(name||""); let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; const hue=[205,218,192,232,176,256,24,40,198,212][h%10]; return `<span class="avatar ${cls}" style="--h:${hue}" aria-hidden="true">${escapeHtml(initials(s))}</span>`; }
+  function shortDate(d){ return new Intl.DateTimeFormat("es-CO",{day:"2-digit",month:"short",year:"numeric"}).format(d); }
+  function parseLocalDate(str){ if(!str) return null; const [y,m,d]=String(str).split("-").map(Number); if(!y||!m||!d) return null; return new Date(y,m-1,d); }
+  function prettyDate(str){ const d=parseLocalDate(str); if(!d) return str||"Sin fecha"; return new Intl.DateTimeFormat("es-CO",{weekday:"short",day:"numeric",month:"short",year:"numeric"}).format(d); }
+  function dateTile(str,cls=""){ const d=parseLocalDate(str); if(!d) return `<div class="date-tile ${cls}"><b>?</b><small>s/f</small></div>`; const past=d<new Date(new Date().toDateString()); const mon=new Intl.DateTimeFormat("es-CO",{month:"short"}).format(d).replace(".",""); return `<div class="date-tile ${cls} ${past?"is-past":""}" title="${escapeHtml(prettyDate(str))}"><b>${d.getDate()}</b><small>${escapeHtml(mon)}</small></div>`; }
+  function wavesSvg(cls="hero-waves"){ return `<svg class="${cls}" viewBox="0 0 800 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 50 C130 20 270 80 400 50 S670 20 800 50 V120 H0Z" fill="rgba(34,195,240,.16)"/><path d="M0 82 C130 57 270 107 400 82 S670 57 800 82 V120 H0Z" fill="rgba(255,255,255,.07)"/></svg>`; }
+  function panelHead(title,sub,iconName,tone="",actions=""){ return `<div class="panel-header"><div class="panel-title">${iconName?`<span class="icon-badge ${tone}">${icon(iconName)}</span>`:""}<div><h3>${title}</h3>${sub?`<p>${sub}</p>`:""}</div></div>${actions}</div>`; }
+  function searchBox(attrs,placeholder,value){ return `<div class="search-wrap">${icon("search")}<input class="search" type="search" ${attrs} placeholder="${escapeHtml(placeholder)}" value="${escapeHtml(value)}"></div>`; }
+  /* ── Ayudantes visuales del rediseño (solo presentacion) ── */
 
   /* ESTADO */
   function loadState() {
@@ -410,29 +455,49 @@
 
   /* UTILIDADES */
   function monthKey(date){ return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}`; }
+  function localDateStr(iso){ if(!iso) return ""; const d=new Date(iso); if(isNaN(d.getTime())) return ""; return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
   function dayKey(date)  { return date.toISOString().slice(0,10); }
   function monthLabel(key){ const [y,m]=key.split("-").map(Number); return new Intl.DateTimeFormat("es-CO",{month:"long",year:"numeric"}).format(new Date(y,m-1,1)); }
   /* Dias de vigencia de cada plan desde la primera clase tomada (fecha real, no mes calendario) */
+  /* Vigencia: TODOS los planes duran 30 dias desde la primera clase (el plan
+     anual dura 1 año). Pedido del cliente el 24-nov-2026. Los planes que ya
+     habian empezado antes de esa fecha conservan los 35 dias con los que se
+     vendieron (DIAS_PLAN_VIGENCIA_ANTES), para no vencerle a nadie de golpe. */
   const DIAS_PLAN_VIGENCIA = {
     "1_practica":30, "1_grupal":30, "1_matronat":30, "8_practicas":30, "5_vacacional":30,
-    "4":35, "9":35, "13":35, "13_equipo":35,
-    "matronat_4":35, "matronat_8":35, "matronat_personalizada_4":35,
-    "personalizado_4":35, "personalizado_8":35,
+    "4":30, "9":30, "13":30, "13_equipo":30,
+    "matronat_4":30, "matronat_8":30, "matronat_personalizada_4":30,
+    "personalizado_4":30, "personalizado_8":30,
     "anual":365, "anual_4":365, "anual_9":365, "anual_13":365,
     "obsequio_1":30, "obsequio_2":30, "obsequio_3":30,
-    "custom":35
+    "custom":30
   };
+  const VIGENCIA_30_DESDE = new Date(2026,10,24); // 24 de noviembre de 2026 (hora local)
+  const DIAS_PLAN_VIGENCIA_ANTES = { "4":35, "9":35, "13":35, "13_equipo":35, "matronat_4":35, "matronat_8":35, "matronat_personalizada_4":35, "personalizado_4":35, "personalizado_8":35, "custom":35 };
+  function textoVigencia(planType){ const d=diasVigenciaPlan(planType); return d>=365?"1 año":d+" días"; }
+  /* El plan SIEMPRE empieza a contar desde la primera clase que el alumno toma,
+     no desde que se registra, paga o se renueva. Versiones anteriores de la app
+     guardaban como "inicio" el momento de la renovacion; esas fechas se
+     reconocen (coinciden con lastRenewedAt) y se reemplazan por la primera
+     clase tomada despues de renovar. */
+  function inicioEsDeRenovacion(student){
+    if(!student||!student.planStartedAt||!student.lastRenewedAt) return false;
+    const a=new Date(student.planStartedAt).getTime(), b=new Date(student.lastRenewedAt).getTime();
+    return !isNaN(a)&&!isNaN(b)&&Math.abs(a-b)<120000;
+  }
+  function inicioPlan(student){
+    if(!student) return null;
+    if(student.planStartedAt&&!inicioEsDeRenovacion(student)){ const d=new Date(student.planStartedAt); return isNaN(d.getTime())?null:d; }
+    const desde=student.lastRenewedAt?new Date(student.lastRenewedAt).getTime()-60000:null;
+    const asistencias=state.attendance.filter(a=>a.studentId===student.id&&(desde===null||new Date(a.at).getTime()>=desde)).sort((a,b)=>new Date(a.at)-new Date(b.at));
+    return asistencias.length?new Date(asistencias[0].at):null;
+  }
   function calcularVencimiento(student){
     // El plan vence por fecha (inicio + dias del plan), nunca por mes calendario
-    let primeraClase=null;
-    if(student.planStartedAt){
-      primeraClase=new Date(student.planStartedAt);
-    } else {
-      const asistencias=state.attendance.filter(a=>a.studentId===student.id).sort((a,b)=>new Date(a.at)-new Date(b.at));
-      if(asistencias.length) primeraClase=new Date(asistencias[0].at);
-    }
+    const primeraClase=inicioPlan(student);
     if(!primeraClase||isNaN(primeraClase.getTime())) return null;
-    const dias=DIAS_PLAN_VIGENCIA[student.planType]||35;
+    let dias=DIAS_PLAN_VIGENCIA[student.planType]||30;
+    if(primeraClase<VIGENCIA_30_DESDE&&DIAS_PLAN_VIGENCIA_ANTES[student.planType]) dias=DIAS_PLAN_VIGENCIA_ANTES[student.planType];
     const vence=new Date(primeraClase);
     vence.setDate(vence.getDate()+dias);
     return vence;
@@ -482,7 +547,10 @@
   function planTotal(student){ if(!student)return 0; const base=student.planType==="custom"?Math.max(0,Number(student.customClasses||0)):Math.max(0,Number(PLAN_CLASSES[student.planType]||0)); return Math.max(0, base+Number(student.bonusClasses||0)); }
   function planBaseClasses(student){ if(!student)return 0; return student.planType==="custom"?Math.max(0,Number(student.customClasses||0)):Math.max(0,Number(PLAN_CLASSES[student.planType]||0)); }
   function remainingClasses(student){ return planTotal(student)-Number(student.classesUsed||0); }
-  function isRenewed(student){ return student.monthKey===state.currentMonth; }
+  function isRenewed(student){
+    if(esPlanAnual(student)){ const v=calcularVencimiento(student); return !v || v.getTime()>=Date.now(); }
+    return student.monthKey===state.currentMonth;
+  }
   function studentStatusBadge(student){
     if(student.status!=="active") return '<span class="badge danger">Pausado</span>';
     if(planVencido(student)) return '<span class="badge danger">Plan vencido</span>';
@@ -548,14 +616,14 @@
       return;
     }
     const btnLogin=document.getElementById("btnLogin");
-    if(btnLogin){ btnLogin.disabled=true; btnLogin.textContent="Verificando..."; }
+    const btnLoginHtml=btnLogin?btnLogin.innerHTML:""; if(btnLogin){ btnLogin.disabled=true; btnLogin.textContent="Verificando..."; }
     try {
       const { data, error } = await _supa.auth.signInWithPassword({ email, password: pass });
       if(error){
         setToast("Contrasena incorrecta. Intentalo de nuevo.");
         const form=document.getElementById("loginForm");
         if(form){ form.style.animation="none"; requestAnimationFrame(()=>{ form.style.animation="shake .35s ease"; }); }
-        if(btnLogin){ btnLogin.disabled=false; btnLogin.innerHTML=btnLogin.innerHTML.replace("Verificando...","Ingresar"); }
+        if(btnLogin){ btnLogin.disabled=false; btnLogin.innerHTML=btnLoginHtml; }
         return;
       }
       isAuthenticated=true; loginModalVisible=false;
@@ -567,7 +635,7 @@
     } catch(e){
       console.error("login:",e);
       setToast("Error de conexion. Verifica tu internet.");
-      if(btnLogin){ btnLogin.disabled=false; }
+      if(btnLogin){ btnLogin.disabled=false; btnLogin.innerHTML=btnLoginHtml; }
     }
   }
   async function logout(){
@@ -595,10 +663,11 @@
     const scannerEstabaActivo=!!(scanner.stream);  // guardar ANTES de destruir DOM
     if(!isAuthenticated){ loginModalVisible=true; }
     setActiveTab();
+    updateNavCounts();
     globalMonth.value=state.currentMonth;
     businessNameLabel.textContent=isAuthenticated?"Control de clases, QR y eventos":"Registro de asistencia";
     if(activeView!=="checkin") stopScanner(false);
-    const renderers={ dashboard:renderDashboard, students:renderStudents, checkin:renderCheckin, cards:renderCards, events:renderEvents, reports:renderReports, settings:renderSettings, register:renderRegister };
+    const renderers={ dashboard:renderDashboard, students:renderStudents, checkin:renderCheckin, cards:renderCards, events:renderEvents, reports:renderReports, settings:renderSettings, register:renderRegister, expiring:renderExpiring };
     // Guardar la vista anterior para saber si el render es del mismo formulario
     const mismaVista = (_renderPrevView === activeView);
     _renderPrevView = activeView;
@@ -635,13 +704,16 @@
       });
     }
 
+    // Editores visuales (documento de exoneracion y "que incluye")
+    try{ initDocEditor(); initInclEditor(app); }catch(e){ console.error("editores:",e); }
+
     // Modal de login: inyectar en body directamente para que cubra todo
     const existingLoginModal=document.getElementById("loginModal");
     if(loginModalVisible && !existingLoginModal){
       const div=document.createElement("div");
       div.innerHTML=renderLoginModal();
       document.body.appendChild(div.firstElementChild);
-      window.requestAnimationFrame(()=>document.querySelector("#loginForm [name='username']")?.focus());
+      window.requestAnimationFrame(()=>document.querySelector("#loginForm [name='password']")?.focus());
     } else if(!loginModalVisible && existingLoginModal){
       existingLoginModal.remove();
     }
@@ -653,105 +725,245 @@
     }
   }
   function renderOverlay(){ if(attendeeDataDraft) return renderAttendeeDataModal(attendeeDataDraft); if(!signatureDraft)return ""; return renderSignatureModal(signatureDraft); }
-  function renderHeader(title,subtitle,actions=""){ return `<div class="view-header"><div><h2>${escapeHtml(title)}</h2><p>${escapeHtml(subtitle)}</p></div><div class="toolbar">${actions}</div></div>`; }
+  function renderHeader(title,subtitle,actions=""){ return `<div class="view-header"><div><h2>${escapeHtml(title)}</h2><p>${escapeHtml(subtitle)}</p></div>${actions?`<div class="toolbar">${actions}</div>`:""}</div>`; }
 
   /* DASHBOARD */
+  /* ── VENCIMIENTOS ─────────────────────────────────────────────────────── */
+  const EXP_GROUPS=[
+    {key:"vencido",  label:"Vencidos",   title:"Vencidos con clases sin usar", tone:"danger", icon:"alert"},
+    {key:"hoy",      label:"Vencen hoy", title:"Vencen hoy",                   tone:"danger", icon:"clock"},
+    {key:"pronto",   label:"1 a 3 dias", title:"Proximos 3 dias",              tone:"warn",   icon:"clock"},
+    {key:"semana",   label:"4 a 7 dias", title:"Esta semana (4 a 7 dias)",     tone:"info",   icon:"calendar"},
+    {key:"sinclases",label:"Sin clases", title:"Sin clases disponibles",       tone:"muted",  icon:"x"},
+  ];
+  function expiringData(){
+    const hoy=new Date(), DAY=1000*60*60*24;
+    const items=[];
+    state.students.filter(s=>s.status==="active").forEach(s=>{
+      const v=calcularVencimiento(s); const r=remainingClasses(s);
+      const dias=v?Math.ceil((v-hoy)/DAY):null;
+      let group=null;
+      if(dias!==null&&dias<=7&&r>0) group=dias<0?"vencido":dias===0?"hoy":dias<=3?"pronto":"semana";
+      else if(r<=0) group="sinclases";
+      if(group) items.push({student:s,vence:v,dias,restantes:r,group});
+    });
+    items.sort((a,b)=>(a.dias??9999)-(b.dias??9999)||a.student.name.localeCompare(b.student.name,"es"));
+    const counts={}; EXP_GROUPS.forEach(g=>counts[g.key]=items.filter(i=>i.group===g.key).length);
+    const urgent=items.filter(i=>i.group!=="sinclases").length;
+    return {items,counts,urgent};
+  }
+  function updateNavCounts(){
+    const n=isAuthenticated?expiringData().urgent:0;
+    document.querySelectorAll('[data-count="expiring"]').forEach(el=>{ el.textContent=n>99?"99+":String(n); el.hidden=!n; });
+  }
+  function expCountdown(it){
+    if(it.group==="sinclases") return `<div class="exp-count tone-muted"><b>0</b><small>clases</small></div>`;
+    if(it.dias<0) return `<div class="exp-count tone-danger"><b>${Math.abs(it.dias)}</b><small>${Math.abs(it.dias)===1?"dia vencido":"dias vencido"}</small></div>`;
+    if(it.dias===0) return `<div class="exp-count tone-danger is-today"><b>HOY</b><small>vence</small></div>`;
+    const g=EXP_GROUPS.find(x=>x.key===it.group);
+    return `<div class="exp-count tone-${g.tone}"><b>${it.dias}</b><small>${it.dias===1?"dia":"dias"}</small></div>`;
+  }
+  function expCard(it){
+    const s=it.student, id=escapeHtml(s.id);
+    const total=planTotal(s), used=Number(s.classesUsed||0);
+    const pct=total?Math.min(100,Math.max(0,(Math.max(0,it.restantes)/total)*100)):0;
+    const ini=inicioPlan(s); const inicio=ini?shortDate(ini):"Con la 1ra clase";
+    const vence=it.vence?shortDate(it.vence):"Sin fecha";
+    const aviso=it.group==="sinclases"
+      ? `<button class="btn wa" type="button" data-action="notify-student" data-id="${id}">${icon("message")}Avisar</button>`
+      : `<button class="btn wa" type="button" data-action="notify-vencimiento" data-id="${id}">${icon("message")}Avisar</button>`;
+    return `<article class="exp-card g-${it.group}">
+      <div class="exp-head">${avatar(s.name)}<div class="exp-who"><strong>${escapeHtml(s.name)}</strong><small>${escapeHtml(s.code)} · ${escapeHtml(PLAN_LABELS[s.planType]||planTotal(s)+" clases")}</small></div>${expCountdown(it)}</div>
+      <div class="exp-body">
+        <div class="exp-row"><span>${it.group==="sinclases"?"Clases":"Sin usar"}</span><strong class="num">${Math.max(0,it.restantes)} <em>de ${total}</em></strong></div>
+        <div class="progress ${it.restantes<=0?"is-out":it.restantes<=2?"is-low":""}"><span style="width:${it.group==="sinclases"?100:pct}%"></span></div>
+        <div class="exp-dates"><span>${icon("play")}Inicio ${inicio}</span><span>${icon("flag")}Vence ${vence}</span></div>
+      </div>
+      <div class="exp-actions">${aviso}<button class="btn accent" type="button" data-action="renew-student" data-id="${id}">${icon("refresh")}Renovar</button><button class="btn icon ghost" type="button" title="Ver ficha" aria-label="Ver ficha de ${escapeHtml(s.name)}" data-action="go-to-student" data-id="${id}">${icon("user")}</button></div>
+    </article>`;
+  }
+  function renderExpiring(){
+    const {items,counts,urgent}=expiringData();
+    const q=expiringSearch.trim().toLowerCase();
+    const match=it=>!q||[it.student.name,it.student.code,it.student.phone].join(" ").toLowerCase().includes(q);
+    const tiles=`<div class="exp-tiles" role="tablist" aria-label="Filtrar vencimientos">
+      <button class="exp-tile ${expiringFilter==="all"?"is-active":""}" type="button" role="tab" aria-selected="${expiringFilter==="all"}" data-action="expiring-filter" data-filter="all"><span class="exp-tile-ic">${icon("list")}</span><b class="num">${urgent+counts.sinclases}</b><small>Todos</small></button>
+      ${EXP_GROUPS.map(g=>`<button class="exp-tile tone-${g.tone} ${expiringFilter===g.key?"is-active":""}" type="button" role="tab" aria-selected="${expiringFilter===g.key}" data-action="expiring-filter" data-filter="${g.key}"><span class="exp-tile-ic">${icon(g.icon)}</span><b class="num">${counts[g.key]}</b><small>${g.label}</small></button>`).join("")}
+    </div>`;
+    const toolbar=`<div class="toolbar filter-bar" style="margin-top:16px">${searchBox('data-filter="expiring-search"',"Buscar alumno por nombre, codigo o telefono…",expiringSearch)}</div>`;
+    let list="";
+    if(expiringFilter==="all"){
+      list=EXP_GROUPS.map(g=>{
+        const arr=items.filter(i=>i.group===g.key&&match(i)); if(!arr.length) return "";
+        return `<section class="exp-group"><header class="exp-group-head tone-${g.tone}"><span class="exp-dot"></span><h3>${g.title}</h3><span class="badge no-dot">${arr.length}</span></header><div class="exp-grid">${arr.map(expCard).join("")}</div></section>`;
+      }).join("");
+    } else {
+      const arr=items.filter(i=>i.group===expiringFilter&&match(i));
+      list=arr.length?`<div class="exp-grid">${arr.map(expCard).join("")}</div>`:"";
+    }
+    if(!list) list=`<div class="empty">${q?"No hay alumnos que coincidan con la busqueda.":"Nada pendiente aqui. Todo al dia."}</div>`;
+    return `${renderHeader("Vencimientos","Planes que vencen esta semana, vencidos con clases sin usar y alumnos sin clases disponibles.")}
+      <section class="panel">${tiles}${toolbar}</section>
+      <div class="exp-list">${list}</div>`;
+  }
+
+  /* ── PANEL ──────────────────────────────────────────────────────────── */
+  function renderAttendanceChart(){
+    const days=14, today=new Date(); today.setHours(0,0,0,0);
+    const buckets=[];
+    for(let i=days-1;i>=0;i--){ const d=new Date(today); d.setDate(d.getDate()-i); buckets.push({d,key:localDateStr(d.toISOString()),n:0}); }
+    const idx={}; buckets.forEach((b,i)=>idx[b.key]=i);
+    state.attendance.forEach(e=>{ const k=localDateStr(e.at); if(k in idx) buckets[idx[k]].n++; });
+    const max=Math.max(1,...buckets.map(b=>b.n));
+    const total=buckets.reduce((s,b)=>s+b.n,0);
+    const prom=(total/days).toFixed(1).replace(".",",");
+    const best=buckets.reduce((a,b)=>b.n>a.n?b:a,buckets[0]);
+    const fmtD=new Intl.DateTimeFormat("es-CO",{weekday:"short",day:"numeric",month:"short"});
+    const wk=new Intl.DateTimeFormat("es-CO",{weekday:"narrow"});
+    const bars=buckets.map((b,i)=>{ const h=b.n?Math.max(4,b.n/max*100):0; const isToday=i===days-1; const lbl=`${fmtD.format(b.d)}: ${b.n} clase${b.n===1?"":"s"}`; return `<div class="ac-col ${isToday?"is-today":""}" tabindex="0" aria-label="${escapeHtml(lbl)}"><div class="ac-tip">${escapeHtml(lbl)}</div><div class="ac-bar-wrap"><div class="ac-bar" style="height:${h}%">${(b===best&&b.n)||isToday?`<span class="ac-val num">${b.n}</span>`:""}</div></div><span class="ac-day">${isToday?"Hoy":escapeHtml(wk.format(b.d).toUpperCase())}</span></div>`; }).join("");
+    return `<div class="ac-meta"><div><span>Total 14 dias</span><strong class="num">${total}</strong></div><div><span>Promedio diario</span><strong class="num">${prom}</strong></div><div><span>Mejor dia</span><strong>${best.n?escapeHtml(fmtD.format(best.d)):"—"}</strong></div></div><div class="ac-chart" role="img" aria-label="Clases registradas por dia en los ultimos 14 dias">${bars}</div><table class="sr-only"><caption>Clases por dia</caption><tbody>${buckets.map(b=>`<tr><td>${escapeHtml(fmtD.format(b.d))}</td><td>${b.n}</td></tr>`).join("")}</tbody></table>`;
+  }
+  function renderExpiringSummary(){
+    const {items,counts,urgent}=expiringData();
+    const top=items.filter(i=>i.group!=="sinclases").slice(0,5);
+    const chips=EXP_GROUPS.map(g=>`<button class="exp-mini tone-${g.tone}" type="button" data-action="expiring-filter" data-filter="${g.key}"><b class="num">${counts[g.key]}</b><span>${g.label}</span></button>`).join("");
+    const lista=top.length?`<div class="exp-peek">${top.map(it=>`<div class="exp-peek-row">${avatar(it.student.name,"sm")}<span>${escapeHtml(it.student.name)}</span>${expCountdown(it)}</div>`).join("")}</div>`:`<div class="empty" style="padding:18px">Ningun plan vence esta semana.</div>`;
+    return `<div class="panel exp-summary">
+      ${panelHead("Vencimientos",urgent?`${urgent} plan${urgent===1?"":"es"} requiere${urgent===1?"":"n"} atencion esta semana.`:"Todo al dia esta semana.","alert",urgent?"warn":"ok",`<button class="btn" type="button" data-action="go-expiring">Ver todo${icon("chevronRight")}</button>`)}
+      <div class="exp-minis">${chips}</div>
+      ${lista}
+    </div>`;
+  }
   function renderDashboard(){
     const summary=stats();
     const recent=[...state.attendance].sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,7);
+    const hora=new Date().getHours();
+    const saludo=hora<12?"Buenos dias":hora<19?"Buenas tardes":"Buenas noches";
+    const hoyTxt=new Intl.DateTimeFormat("es-CO",{weekday:"long",day:"numeric",month:"long"}).format(new Date());
+    const totalCupos=summary.usedClasses+summary.remaining;
+    const usoPct=totalCupos?Math.min(100,Math.round(summary.usedClasses/totalCupos*100)):0;
+    const renovPct=summary.active?Math.round(summary.renewed/summary.active*100):0;
+    const pendPct=summary.active?Math.round(summary.pendingRenewal/summary.active*100):0;
+    const exp=expiringData();
     return `
-      ${renderHeader("Panel de "+monthLabel(state.currentMonth),"Control mensual de cupos, asistencia y renovaciones.")}
-      ${(()=>{
-        const alertas=getAlertStudents();
-        if(!alertas.length) return "";
-        return '<section class="panel" style="margin-bottom:16px;border-left:4px solid var(--warning);background:rgba(255,159,10,.05)">'
-          +'<div class="panel-header"><div><h3 style="color:#92400e">Planes por vencer pronto</h3>'
-          +'<p style="color:#92400e">'+alertas.length+' alumno(s) con plan que vence en los proximos 7 dias y aun tienen clases disponibles</p></div></div>'
-          +'<div class="student-list">'
-          +alertas.map(a=>{
-            const color=a.diasRestantes<=0?"var(--danger)":a.diasRestantes<=3?"var(--danger)":"var(--warning)";
-            const fechaVence=new Intl.DateTimeFormat("es-CO",{day:"2-digit",month:"short",year:"numeric"}).format(a.vence);
-            const label=a.diasRestantes>0?(a.diasRestantes===1?"Vence manana":"Vence en "+a.diasRestantes+" dias")
-              :a.diasRestantes===0?"Vence hoy"
-              :"Vencio el "+fechaVence;
-            const fechaInicio=a.student.planStartedAt?new Intl.DateTimeFormat("es-CO",{day:"2-digit",month:"short",year:"numeric"}).format(new Date(a.student.planStartedAt)):"—";
-            return '<article class="student-card" data-action="go-to-student" data-id="'+escapeHtml(a.student.id)+'" style="cursor:pointer">'
-              +'<div><strong>'+escapeHtml(a.student.name)+'</strong>'
-              +'<div class="meta">'
-              +'<span style="color:'+color+';font-weight:700">'+label+'</span>'
-              +'<span>'+a.clasesRestantes+' clase(s) sin usar</span>'
-              +'<span>'+escapeHtml(PLAN_LABELS[a.student.planType]||a.student.planType||"")+'</span>'
-              +'</div>'
-              +'<div class="meta" style="margin-top:4px;font-size:.74rem;color:var(--muted)">'
-              +'<span>Inicio: '+fechaInicio+'</span>'
-              +'<span>Vence: '+fechaVence+'</span>'
-              +'</div></div>'
-              +'<button class="btn" type="button" style="background:#25D366;color:#fff;white-space:nowrap" '
-              +'data-action="notify-vencimiento" data-id="'+escapeHtml(a.student.id)+'">📲 Avisar</button>'
-              +'</article>';
-          }).join("")
-          +'</div></section>';
-      })()}
+      <section class="hero">
+        ${wavesSvg()}
+        <div>
+          <span class="eyebrow">${escapeHtml(hoyTxt)}</span>
+          <h2>${saludo}, equipo ACQUA</h2>
+          <p>Panel de ${escapeHtml(monthLabel(state.currentMonth))}: cupos, asistencia y renovaciones en un vistazo.</p>
+          <div class="hero-actions">
+            <button class="btn primary lg" type="button" data-action="go-checkin">${icon("scan")}Abrir escaner QR</button>
+            <button class="btn glass lg" type="button" data-action="go-register">${icon("userPlus")}Nuevo alumno</button>
+            ${exp.urgent?`<button class="btn glass lg" type="button" data-action="go-expiring">${icon("alert")}${exp.urgent} por vencer</button>`:""}
+          </div>
+        </div>
+        <div class="hero-today"><span>Check-ins hoy</span><strong class="num">${summary.today}</strong><small>${summary.monthAttendance} en el mes</small></div>
+      </section>
       <section class="grid cols-4">
-        ${statCard("Alumnos activos",summary.active,summary.renewed+" renovados este mes")}
-        ${statCard("Clases usadas",summary.usedClasses,summary.remaining+" disponibles")}
-        ${statCard("Check-ins de hoy",summary.today,summary.monthAttendance+" en el mes")}
-        ${statCard("Por renovar",summary.pendingRenewal,summary.events+" eventos activos")}
+        ${statCard("Alumnos activos",summary.active,summary.renewed+" renovados este mes","users",renovPct,"is-featured")}
+        ${statCard("Clases usadas",summary.usedClasses,summary.remaining+" disponibles · "+usoPct+"% del cupo","check",usoPct,"")}
+        ${statCard("Por renovar",summary.pendingRenewal,pendPct+"% de los activos","refresh",pendPct,"tone-warn")}
+        ${statCard("Eventos",summary.events,"competencias y travesias","calendar",null,"")}
+      </section>
+      <section class="grid cols-2" style="margin-top:16px">
+        <div class="panel">${panelHead("Asistencia","Clases registradas por dia · ultimos 14 dias.","activity","",`<button class="btn ghost" type="button" data-action="go-reports">${icon("chart")}Reportes</button>`)}${renderAttendanceChart()}</div>
+        ${renderExpiringSummary()}
       </section>
       <section class="grid cols-2" style="margin-top:16px">
         <div class="panel">
-          <div class="panel-header"><div><h3>Check-in rapido</h3><p>Busca por nombre, telefono o codigo de carnet.</p></div>
-            <button class="btn primary" type="button" data-action="go-checkin">${icon("scan")}Abrir QR</button></div>
+          ${panelHead("Check-in rapido","Busca por nombre, telefono o codigo de carnet.","zap","",`<button class="btn" type="button" data-action="go-checkin">${icon("scan")}QR</button>`)}
           ${renderQuickSearch()}
         </div>
         <div class="panel">
-          <div class="panel-header"><div><h3>Renovacion mensual</h3><p>${escapeHtml(monthLabel(state.currentMonth))}</p></div>
-            <button class="btn accent" type="button" data-action="renew-all">${icon("refresh")}Renovar activos</button></div>
+          ${panelHead("Renovacion mensual",escapeHtml(monthLabel(state.currentMonth)),"refresh","warn",`<button class="btn accent" type="button" data-action="renew-all">${icon("refresh")}Renovar activos</button>`)}
           ${renderRenewalSummary()}
         </div>
       </section>
       <section class="panel" style="margin-top:16px">
-        <div class="panel-header"><div><h3>Ultimas clases registradas</h3><p>Movimientos recientes del control de asistencia.</p></div>
-          <button class="btn" type="button" data-action="go-reports">${icon("file")}Ver reportes</button></div>
+        ${panelHead("Ultimas clases registradas","Movimientos recientes del control de asistencia.","activity","",`<button class="btn" type="button" data-action="go-reports">${icon("chart")}Ver reportes</button>`)}
         ${renderAttendanceTable(recent)}
       </section>`;
   }
-  function statCard(label,value,detail){ return `<article class="stat-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></article>`; }
+  function statCard(label,value,detail,iconName="",pct=null,cls=""){ return `<article class="stat-card ${cls}"><span>${escapeHtml(label)}</span>${iconName?`<span class="icon-badge stat-icon">${icon(iconName)}</span>`:""}<strong class="num">${escapeHtml(value)}</strong>${pct!==null&&pct!==undefined?`<div class="meter" aria-hidden="true"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div>`:""}<small>${escapeHtml(detail)}</small></article>`; }
 
   /* BUSQUEDA RAPIDA */
   function renderQuickSearch(){
     const matches=filteredStudents({search:checkinSearch,status:"active"}).slice(0,5);
-    return `<form class="toolbar" data-form="quick-search"><input class="search" type="search" data-filter="checkin-search" placeholder="Buscar alumno" value="${escapeHtml(checkinSearch)}"><button class="btn primary" type="submit">${icon("check")}Registrar</button></form>${renderStudentPickList(matches)}`;
+    return `<form class="toolbar" data-form="quick-search" style="margin-bottom:12px">${searchBox('data-filter="checkin-search"',"Buscar alumno",checkinSearch)}<button class="btn primary" type="submit">${icon("check")}Registrar</button></form>${renderStudentPickList(matches)}`;
+  }
+  function miniRing(rem,total,size=46){
+    const r=(size-6)/2, C=2*Math.PI*r, frac=total?Math.max(0,Math.min(1,rem/total)):0;
+    const col=rem<=0?"var(--danger)":rem<=2?"var(--accent)":"var(--success)";
+    return `<span class="mini-ring" style="width:${size}px;height:${size}px"><svg viewBox="0 0 ${size} ${size}"><circle cx="${size/2}" cy="${size/2}" r="${r}" class="trk"/><circle cx="${size/2}" cy="${size/2}" r="${r}" stroke="${col}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C*(1-frac)).toFixed(1)}" class="val"/></svg><b style="color:${col}">${Math.max(0,rem)}</b></span>`;
+  }
+  function planFechas(student){
+    const ini=inicioPlan(student), ven=calcularVencimiento(student);
+    const dias=ven?Math.ceil((ven-new Date())/(1000*60*60*24)):null;
+    return {ini,ven,dias};
   }
   function renderStudentPickList(students){
     if(!students.length) return '<div class="empty">No hay alumnos que coincidan.</div>';
-    return `<div class="student-list">${students.map(student=>{
-      const remaining=remainingClasses(student);
-      return `<article class="student-card" data-action="go-to-student" data-id="${escapeHtml(student.id)}" style="cursor:pointer"><div><strong>${escapeHtml(student.name)}</strong><div class="meta"><span>${escapeHtml(student.code)}</span><span>${escapeHtml(PLAN_LABELS[student.planType]||planTotal(student)+" clases")}</span><span>${isRenewed(student)?remaining+" restantes":"Sin renovar"}</span></div></div><button class="btn primary" type="button" data-action="register-class" data-id="${escapeHtml(student.id)}">${icon("check")}Registrar</button></article>`;
+    const featured=checkinSearch.trim()?students[0]:null;
+    const rest=featured?students.slice(1):students;
+    let html="";
+    if(featured){
+      const s=featured, id=escapeHtml(s.id);
+      const total=planTotal(s), used=Number(s.classesUsed||0), rem=remainingClasses(s);
+      const {ini,ven,dias}=planFechas(s);
+      const venTxt=ven?shortDate(ven):"—";
+      const venSub=dias===null?"Se calcula con la 1ra clase":dias<0?`Vencio hace ${Math.abs(dias)} dia${Math.abs(dias)===1?"":"s"}`:dias===0?"Vence hoy":`Faltan ${dias} dia${dias===1?"":"s"}`;
+      const venTone=dias===null?"":dias<0||dias===0?"is-danger":dias<=5?"is-warn":"";
+      const sinClases=rem<=0;
+      html+=`<article class="pick-hero ${sinClases?"is-blocked":""}">
+        <div class="pick-hero-top">${avatar(s.name)}<div class="pick-hero-who"><strong>${escapeHtml(s.name)}</strong><small>${escapeHtml(s.code)} · ${escapeHtml(PLAN_LABELS[s.planType]||total+" clases")}</small></div>${studentStatusBadge(s)}</div>
+        <div class="pick-hero-body">
+          ${miniRing(rem,total,92)}
+          <div class="pick-stats">
+            <div><span>${icon("play")}Inicio</span><strong>${ini?shortDate(ini):"Hoy, con esta clase"}</strong><small>${ini?"Primera clase del plan":"El plan arranca al registrar"}</small></div>
+            <div class="${venTone}"><span>${icon("flag")}Vence</span><strong>${venTxt}</strong><small>${venSub}</small></div>
+            <div><span>${icon("check")}Clases</span><strong>Lleva ${used} de ${total}</strong><small>${Math.max(0,rem)} disponible${rem===1?"":"s"}</small></div>
+          </div>
+        </div>
+        ${sinClases?`<div class="checkin-warning danger" style="margin:0">Sin clases disponibles: renueva el plan antes de registrar.</div>`:""}
+        <div class="pick-hero-actions">${sinClases?`<button class="btn primary lg" type="button" data-action="renew-student" data-id="${id}">${icon("refresh")}Renovar plan</button>`:`<button class="btn primary lg" type="button" data-action="register-class" data-id="${id}">${icon("check")}Registrar clase</button>`}<button class="btn outline" type="button" data-action="go-to-student" data-id="${id}">${icon("user")}Ver ficha</button></div>
+      </article>`;
+      if(rest.length) html+=`<p class="pick-more">Otros resultados</p>`;
+    }
+    html+=`<div class="student-list">${rest.map(student=>{
+      const total=planTotal(student), used=Number(student.classesUsed||0), rem=remainingClasses(student);
+      const {ini,ven,dias}=planFechas(student);
+      const venCls=dias===null?"":dias<=0?"is-danger":dias<=5?"is-warn":"";
+      return `<article class="student-card pick-row" data-action="go-to-student" data-id="${escapeHtml(student.id)}">${avatar(student.name)}<div class="sc-body"><strong>${escapeHtml(student.name)}</strong><div class="meta"><span>${escapeHtml(student.code)}</span><span>${escapeHtml(PLAN_LABELS[student.planType]||total+" clases")}</span></div><div class="pick-facts"><span>${icon("play")}${ini?shortDate(ini):"Sin iniciar"}</span><span class="${venCls}">${icon("flag")}${ven?shortDate(ven):"—"}</span><span>${icon("check")}${used}/${total}</span></div></div>${miniRing(rem,total,44)}<button class="btn primary" type="button" data-action="register-class" data-id="${escapeHtml(student.id)}">${icon("check")}Registrar</button></article>`;
     }).join("")}</div>`;
+    return html;
   }
   function renderRenewalSummary(){
     const pending=state.students.filter(s=>s.status==="active"&&!isRenewed(s));
     if(!state.students.length) return '<div class="empty">Agrega alumnos para activar las renovaciones.</div>';
     if(!pending.length) return '<div class="empty">Todos los alumnos activos ya estan renovados.</div>';
-    return `<div class="student-list">${pending.slice(0,5).map(student=>`<article class="student-card" data-action="go-to-student" data-id="${escapeHtml(student.id)}" style="cursor:pointer"><div><strong>${escapeHtml(student.name)}</strong><div class="meta"><span>${escapeHtml(student.code)}</span><span>Ultimo mes: ${escapeHtml(student.monthKey||"sin registro")}</span></div></div><button class="btn" type="button" data-action="renew-student" data-id="${escapeHtml(student.id)}">${icon("refresh")}Renovar</button></article>`).join("")}</div>${pending.length>5?`<p class="muted">Hay ${pending.length-5} alumnos mas por renovar.</p>`:""}`;
+    return `<div class="student-list">${pending.slice(0,5).map(student=>`<article class="student-card" data-action="go-to-student" data-id="${escapeHtml(student.id)}">${avatar(student.name)}<div class="sc-body"><strong>${escapeHtml(student.name)}</strong><div class="meta"><span>${escapeHtml(student.code)}</span><span>Ultimo mes: ${escapeHtml(student.monthKey||"sin registro")}</span></div></div><button class="btn accent" type="button" data-action="renew-student" data-id="${escapeHtml(student.id)}">${icon("refresh")}Renovar</button></article>`).join("")}</div>${pending.length>5?`<p class="muted">Hay ${pending.length-5} alumnos mas por renovar.</p>`:""}`;
   }
 
   /* ALUMNOS */
   function renderStudents(){
     const students=filteredStudents(studentFilters);
     const editing=editingStudentId?getStudent(editingStudentId):null;
-    const listPanel=`<div class="panel students-list-panel"><div class="panel-header"><div><h3>Listado de alumnos</h3><p>${students.length} alumno${students.length===1?"":"s"} encontrados.</p></div>${studentsFormVisible?`<button class="btn icon" type="button" data-action="toggle-students-form">${icon("x")}</button>`:""}</div>${renderStudentFilters()}${renderStudentsTable(students)}</div>`;
+    const headActions=`<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn wa-soft" type="button" data-action="share-register-link">${icon("message")}Enviar formulario WA</button><button class="btn primary" type="button" data-action="new-student">${icon("plus")}Nuevo alumno</button></div>`;
+    const listPanel=`<div class="panel students-list-panel">${panelHead("Listado de alumnos",`${students.length} alumno${students.length===1?"":"s"} encontrado${students.length===1?"":"s"}.`,"users","","")}${renderStudentFilters()}${renderStudentsTable(students)}</div>`;
+    const sinDefinir=state.students.filter(x=>x.planType==="anual"&&x.status==="active").length;
+    const avisoAnual=sinDefinir&&studentFilters.plan!=="anual"?`<div class="callout warn" style="margin-bottom:16px;align-items:center">${icon("alert")}<span style="flex:1"><strong>${sinDefinir} alumno${sinDefinir===1?"":"s"} con "Plan anual" sin definir.</strong> Ese plan no dice cuantas clases al mes tiene (la app le da 100 al año). Edita su ficha y elige Plan anual 4, 9 o 13 clases/mes: las clases que ya vio se conservan.</span><button class="btn accent" type="button" data-action="filter-plan-anual">Ver cuales</button></div>`:"";
     if(studentsFormVisible){
-      return `${renderHeader("Alumnos","Ficha unica por estudiante.",`<div style="display:flex;gap:8px"><button class="btn ghost" type="button" data-action="share-register-link">${icon("message")} Enviar formulario WA</button><button class="btn primary" type="button" data-action="new-student">${icon("plus")}Nuevo alumno</button></div>`)}<section class="grid cols-2"><div class="panel"><div class="panel-header"><div><h3>${editing?"Editar alumno":"Nuevo alumno"}</h3><p>${editing?escapeHtml(editing.code):"El codigo se asigna automaticamente."}</p></div></div>${renderStudentForm(editing)}</div>${listPanel}</section>`;
+      return `${renderHeader("Alumnos","Ficha unica por estudiante: plan, clases, pagos y firma.",headActions)}${avisoAnual}<section class="panel student-form-panel ${editing?"is-edit":""}" style="margin-bottom:16px">${panelHead(editing?"Editar alumno":"Nuevo alumno",editing?escapeHtml(editing.code)+" · "+escapeHtml(editing.name):"El codigo se asigna automaticamente.",editing?"edit":"userPlus","",`<button class="btn icon ghost" type="button" title="Cerrar formulario" aria-label="Cerrar formulario" data-action="toggle-students-form">${icon("x")}</button>`)}${renderStudentForm(editing)}</section>${listPanel}`;
     }
-    return `${renderHeader("Alumnos","Ficha unica por estudiante.",`<div style="display:flex;gap:8px"><button class="btn ghost" type="button" data-action="share-register-link">${icon("message")} Enviar formulario WA</button><button class="btn primary" type="button" data-action="new-student">${icon("plus")}Nuevo alumno</button></div>`)}${listPanel}`;
+    return `${renderHeader("Alumnos","Ficha unica por estudiante: plan, clases, pagos y firma.",headActions)}${avisoAnual}${listPanel}`;
   }
   function renderStudentForm(student){
     const data=student||{name:"",category:"Infantil",birthdate:"",documento:"",responsible:"",phoneAcudiente:"",talla:"",peso:"",sangre:"",eps:"",camiseta:"",nivel:"",phone:"",email:"",planType:"4",customClasses:1,status:"active",notes:""};
     const showCustom=data.planType==="custom";
     return `<form id="studentForm" class="field-grid">
       <input type="hidden" name="studentId" value="${escapeHtml(student?.id||"")}">
+      <div class="field-section">Datos personales</div>
       <label class="field wide">Nombre completo del alumno<input name="name" required autocomplete="name" value="${escapeHtml(data.name)}"></label>
       <label class="field">Documento de identidad<input name="documento" inputmode="numeric" placeholder="CC / TI / CE" value="${escapeHtml(data.documento||'')}"></label>
       <label class="field">Tipo<select name="category">${so("Infantil",data.category,"Infantil")}${so("Adulto",data.category,"Adulto")}${so("Matronatacion",data.category,"Matronatacion")}</select></label>
@@ -760,31 +972,51 @@
       <label class="field">Acudiente o contacto<input name="responsible" value="${escapeHtml(data.responsible)}"></label>
       <label class="field">Telefono del acudiente<input name="phoneAcudiente" inputmode="tel" placeholder="300 000 0000" value="${escapeHtml(data.phoneAcudiente||'')}"></label>
       <label class="field">Correo<input name="email" type="email" value="${escapeHtml(data.email)}"></label>
+      <div class="field-section">Plan y nivel</div>
       <label class="field">Plan mensual<select name="planType" data-plan-select>
         ${so("1_practica",data.planType,PLAN_LABELS["1_practica"])}${so("1_grupal",data.planType,PLAN_LABELS["1_grupal"])}${so("1_matronat",data.planType,PLAN_LABELS["1_matronat"])}${so("4",data.planType,PLAN_LABELS["4"])}${so("9",data.planType,PLAN_LABELS["9"])}${so("8_practicas",data.planType,PLAN_LABELS["8_practicas"])}${so("13",data.planType,PLAN_LABELS["13"])}${so("13_equipo",data.planType,PLAN_LABELS["13_equipo"])}${so("5_vacacional",data.planType,PLAN_LABELS["5_vacacional"])}${so("matronat_4",data.planType,PLAN_LABELS["matronat_4"])}${so("matronat_8",data.planType,PLAN_LABELS["matronat_8"])}${so("matronat_personalizada_4",data.planType,PLAN_LABELS["matronat_personalizada_4"])}${so("anual_4",data.planType,PLAN_LABELS["anual_4"])}${so("anual_9",data.planType,PLAN_LABELS["anual_9"])}${so("anual_13",data.planType,PLAN_LABELS["anual_13"])}${so("personalizado_4",data.planType,PLAN_LABELS["personalizado_4"])}${so("personalizado_8",data.planType,PLAN_LABELS["personalizado_8"])}${so("obsequio_1",data.planType,PLAN_LABELS["obsequio_1"])}${so("obsequio_2",data.planType,PLAN_LABELS["obsequio_2"])}${so("obsequio_3",data.planType,PLAN_LABELS["obsequio_3"])}${so("custom",data.planType,PLAN_LABELS.custom)}</select></label>
+      <div class="callout wide" style="font-size:.8rem">${icon("clock")}<span><strong>Todos los planes duran 30 dias</strong> contados desde la primera clase (el plan anual dura 1 año).</span></div>
       <label class="field" data-custom-classes ${showCustom?"":"hidden"}>Clases del plan<input name="customClasses" type="number" min="1" max="80" value="${escapeHtml(data.customClasses||1)}"></label>
-      ${student?`<label class="field">Fecha de inicio del plan actual<input name="planStartedAt" type="date" value="${escapeHtml(data.planStartedAt?String(data.planStartedAt).slice(0,10):'')}"><small style="color:var(--muted);font-weight:400">Desde aqui vence el plan (+30 o 35 dias). Solo cambiala si sabes la fecha real en que inicio.</small></label>`:""}
+      ${student?`<label class="field">Fecha de inicio del plan actual<input name="planStartedAt" type="date" value="${escapeHtml((()=>{ const ini=inicioPlan(data); return ini?localDateStr(ini.toISOString()):""; })())}"><small style="color:var(--muted);font-weight:500">Vacia = el plan empieza solo con la primera clase. Desde esta fecha corren los 30 dias del plan (1 año si es anual). Solo cambiala si sabes la fecha real en que inicio.</small></label>`:""}
       <label class="field">Estado<select name="status">${so("active",data.status,"Activo")}${so("paused",data.status,"Pausado")}</select></label><label class="field">Nivel del alumno<select name="nivel">${so("",data.nivel||"","Sin nivel asignado")}${[1,2,3,4,5,6,7,8].map(n=>so(String(n),data.nivel||"","Nivel "+n)).join("")}</select></label>
+      <div class="field-section">Salud y dotacion</div>
       <label class="field">Estatura (cm)<input name="talla" type="number" min="30" max="250" placeholder="Ej: 120" value="${escapeHtml(data.talla||'')}"></label><label class="field">Peso (kg)<input name="peso" type="number" min="1" max="300" placeholder="Ej: 45" value="${escapeHtml(data.peso||'')}"></label><label class="field">Tipo de sangre<select name="sangre">${so("",data.sangre||"","Seleccionar")}${["O+","O-","A+","A-","B+","B-","AB+","AB-"].map(t=>so(t,data.sangre||"",t)).join("")}</select></label><label class="field">EPS<input name="eps" placeholder="Ej: Sura, Sanitas..." value="${escapeHtml(data.eps||'')}"></label><label class="field">Talla camiseta<select name="camiseta">${so("",data.camiseta||"","Seleccionar")}${["2","4","6","8","10","12","14","XS","S","M","L","XL","XXL"].map(t=>so(t,data.camiseta||"",t)).join("")}</select></label><label class="field wide">Notas<textarea name="notes">${escapeHtml(data.notes)}</textarea></label>
       <div class="split-actions wide">${student?`<button class="btn" type="button" data-action="cancel-edit">Cancelar</button>`:""}<button class="btn primary" type="submit">${icon("save")}${student?"Guardar cambios":"Guardar alumno"}</button></div>
     </form>`;
   }
   function so(value,current,label=value){ return `<option value="${escapeHtml(value)}" ${value===current?"selected":""}>${escapeHtml(label)}</option>`; }
   function renderStudentFilters(){
-    return `<div class="toolbar" style="margin-bottom:12px"><input class="search" type="search" data-filter="students-search" placeholder="Buscar" value="${escapeHtml(studentFilters.search)}"><select class="compact-input" data-filter="students-plan" aria-label="Filtrar por plan">${so("all",studentFilters.plan,"Todos los planes")}${Object.entries(PLAN_LABELS).map(([k,v])=>so(k,studentFilters.plan,v)).join("")}</select><select class="compact-input" data-filter="students-status" aria-label="Filtrar por estado">${so("all",studentFilters.status,"Todos")}${so("active",studentFilters.status,"Activos")}${so("paused",studentFilters.status,"Pausados")}</select></div>`;
+    return `<div class="toolbar filter-bar">${searchBox('data-filter="students-search"',"Buscar por nombre, codigo, telefono…",studentFilters.search)}<select class="compact-input" data-filter="students-plan" aria-label="Filtrar por plan">${so("all",studentFilters.plan,"Todos los planes")}${Object.entries(PLAN_LABELS).map(([k,v])=>so(k,studentFilters.plan,v)).join("")}</select><select class="compact-input" data-filter="students-status" aria-label="Filtrar por estado">${so("all",studentFilters.status,"Todos")}${so("active",studentFilters.status,"Activos")}${so("paused",studentFilters.status,"Pausados")}</select></div>`;
   }
   function planEndDate(student){ return calcularVencimiento(student); }
   function renderStudentsTable(students){
     if(!students.length) return '<div class="empty">No hay alumnos para mostrar.</div>';
-    return `<div class="table-wrap"><table><thead><tr><th>Alumno</th><th>Plan</th><th>Inicio plan</th><th>Vence</th><th>Clases</th><th>Estado</th><th></th></tr></thead><tbody>${students.map(student=>{
+    return `<div class="table-wrap"><table><thead><tr><th>Alumno</th><th>Plan</th><th>Vigencia</th><th>Clases</th><th>Estado</th><th><span class="sr-only">Acciones</span></th></tr></thead><tbody>${students.map(student=>{
       const total=planTotal(student), used=Number(student.classesUsed||0), remaining=remainingClasses(student);
       const progress=total?Math.min(100,Math.max(0,(used/total)*100)):0;
+      const progCls=remaining<=0?"is-out":remaining<=2?"is-low":"";
       const endDate=calcularVencimiento(student);
       const vencido=endDate&&endDate.getTime()<Date.now();
       const diasParaVencer=endDate?Math.ceil((endDate-Date.now())/(1000*60*60*24)):null;
-      const venceColor=vencido?"var(--danger)":(diasParaVencer!==null&&diasParaVencer<=5)?"var(--warning)":"var(--muted)";
-      const venceHtml=endDate? `<span style="color:${venceColor};font-weight:${vencido?700:400}">${new Intl.DateTimeFormat("es-CO",{day:"2-digit",month:"short",year:"numeric"}).format(endDate)}</span>` : "—";
-      return `<tr><td data-label=""><div class="student-name"><strong>${escapeHtml(student.name)}</strong><small>${escapeHtml(student.code)} - ${escapeHtml(student.phone||"sin telefono")}</small></div></td><td data-label="Plan">${planBadge(student)}${student.nivel?`<span class="badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;margin-left:4px">Nivel ${escapeHtml(student.nivel)}</span>`:""}</td><td data-label="Inicio plan" style="font-size:.78rem;color:var(--muted);white-space:nowrap">${student.planStartedAt? new Intl.DateTimeFormat("es-CO",{day:"2-digit",month:"short",year:"numeric"}).format(new Date(student.planStartedAt)):"—"}</td><td data-label="Vence" style="font-size:.78rem;white-space:nowrap">${venceHtml}</td><td data-label="Clases"><div class="classes-cell"><strong>${remaining}</strong><small>restantes - ${used}/${total} usadas</small></div><div class="progress" aria-hidden="true"><span style="width:${progress}%"></span></div></td><td data-label="Estado">${studentStatusBadge(student)}</td><td class="actions" data-label=""><button class="btn icon" type="button" title="Registrar clase" data-action="register-class" data-id="${escapeHtml(student.id)}">${icon("check")}</button><button class="btn icon" type="button" title="Registrar pago" data-action="open-pay-modal" data-id="${escapeHtml(student.id)}">${icon("dollar")}</button><button class="btn icon" type="button" title="Renovar" data-action="renew-student" data-id="${escapeHtml(student.id)}">${icon("refresh")}</button><button class="btn icon" type="button" title="WhatsApp recordatorio" data-action="notify-student" data-id="${escapeHtml(student.id)}">${icon("message")}</button><button class="btn icon" type="button" title="Enviar carnet por WhatsApp" data-action="send-carnet-whatsapp" data-id="${escapeHtml(student.id)}" style="color:#25D366">${icon("scan")}</button><button class="btn icon" type="button" title="Editar" data-action="edit-student" data-id="${escapeHtml(student.id)}">${icon("edit")}</button><button class="btn icon" type="button" title="${student.waiver?'Firma registrada ✓':'Enviar firma por WhatsApp'}" data-action="send-waiver-whatsapp" data-id="${escapeHtml(student.id)}" style="${student.waiver?'color:var(--success)':''}">${icon("signature")}</button>${student.status==="active"?`<button class="btn icon warn" type="button" title="Pausar alumno" data-action="pause-student" data-id="${escapeHtml(student.id)}">${icon("stop")}</button>`:`<button class="btn icon" type="button" title="Activar alumno" data-action="activate-student" data-id="${escapeHtml(student.id)}">${icon("user")}</button>`}<button class="btn icon danger" type="button" title="Eliminar alumno definitivamente" data-action="delete-student" data-id="${escapeHtml(student.id)}">${icon("trash")}</button></td></tr>`;
+      const venceCls=vencido?"is-late":(diasParaVencer!==null&&diasParaVencer<=5)?"is-soon":"";
+      const id=escapeHtml(student.id);
+      const menu=`<details class="menu"><summary class="btn icon" title="Mas acciones" aria-label="Mas acciones para ${escapeHtml(student.name)}">${icon("more")}</summary><div class="menu-list" role="menu">
+          <button type="button" data-action="edit-student" data-id="${id}">${icon("edit")}Editar ficha</button>
+          <button type="button" class="is-wa" data-action="notify-student" data-id="${id}">${icon("message")}Recordatorio por WhatsApp</button>
+          <button type="button" class="is-wa" data-action="send-carnet-whatsapp" data-id="${id}">${icon("card")}Enviar carnet por WhatsApp</button>
+          <button type="button" class="${student.waiver?"is-done":"is-wa"}" data-action="send-waiver-whatsapp" data-id="${id}">${icon("signature")}${student.waiver?"Firma registrada ✓":"Enviar firma por WhatsApp"}</button>
+          <hr>
+          ${student.status==="active"?`<button type="button" class="is-warn" data-action="pause-student" data-id="${id}">${icon("pause")}Pausar alumno</button>`:`<button type="button" data-action="activate-student" data-id="${id}">${icon("play")}Activar alumno</button>`}
+          <button type="button" class="is-danger" data-action="delete-student" data-id="${id}">${icon("trash")}Eliminar definitivamente</button>
+        </div></details>`;
+      return `<tr>
+        <td data-label=""><div class="student-name">${avatar(student.name)}<div><strong>${escapeHtml(student.name)}</strong><small>${escapeHtml(student.code)} · ${escapeHtml(student.phone||"sin telefono")}</small></div></div></td>
+        <td data-label="Plan"><div class="badges">${planBadge(student)}${student.nivel?`<span class="badge level">Nivel ${escapeHtml(student.nivel)}</span>`:""}</div></td>
+        <td data-label="Vigencia"><div class="date-cell ${venceCls}">${endDate?"Vence "+shortDate(endDate):"Sin iniciar"}</div><small class="date-cell" style="font-size:.72rem">${(()=>{ const ini=inicioPlan(student); return ini?"Desde "+shortDate(ini):"Inicia con la 1ra clase"; })()}</small></td>
+        <td data-label="Clases"><div class="classes-cell"><strong>${remaining}</strong><small>de ${total} · ${used} usadas</small></div><div class="progress ${progCls}" aria-hidden="true"><span style="width:${progress}%"></span></div></td>
+        <td data-label="Estado">${studentStatusBadge(student)}</td>
+        <td class="actions" data-label=""><button class="btn icon go" type="button" title="Registrar clase" aria-label="Registrar clase" data-action="register-class" data-id="${id}">${icon("check")}</button><button class="btn icon" type="button" title="Registrar pago" aria-label="Registrar pago" data-action="open-pay-modal" data-id="${id}">${icon("dollar")}</button><button class="btn icon" type="button" title="Renovar" aria-label="Renovar" data-action="renew-student" data-id="${id}">${icon("refresh")}</button>${menu}</td>
+      </tr>`;
     }).join("")}</tbody></table></div>`;
   }
 
@@ -792,39 +1024,36 @@
   function renderCheckin(){
     const matches=filteredStudents({search:checkinSearch,status:"active"}).slice(0,7);
     return `
-      ${renderHeader("Escaner QR de Asistencia","Escanea el carnet del alumno para registrar la clase de hoy.")}
+      ${renderHeader("Asistencia QR","Escanea el carnet del alumno para registrar la clase de hoy.")}
       <section class="scan-layout">
-        <div class="panel">
-          <div class="panel-header"><div><h3>Lector de camara</h3><p>Apunta al codigo QR del carnet del alumno.</p></div></div>
-          <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn primary" type="button" data-action="start-scanner" style="flex:1;min-height:52px;font-size:1rem">${icon("scan")} Abrir camara</button>
-            <button class="btn ghost" type="button" data-action="stop-scanner" style="min-height:52px">${icon("stop")} Detener</button>
+        <div class="panel scan-panel">
+          <div class="scan-actions">
+            <button class="btn primary lg" type="button" data-action="start-scanner">${icon("camera")}Abrir camara</button>
+            <button class="btn outline lg" type="button" data-action="stop-scanner">${icon("stop")}Detener</button>
           </div>
-          <div class="scanner-box" style="position:relative">
-            <video id="scanVideo" playsinline muted style="width:100%;min-height:280px;border-radius:12px;background:#000;object-fit:cover;display:block"></video>
-            <div id="scannerPlaceholder" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--bg);border-radius:12px">
-              <div style="width:64px;height:64px;color:var(--muted-2)">${icon("scan")}</div>
-              <p style="color:var(--muted);font-size:.88rem;text-align:center;margin:0;padding:0 20px">Toca <strong>Abrir camara</strong> para activar el escaner QR.</p>
+          <div class="scanner-box">
+            <video id="scanVideo" playsinline muted></video>
+            <div id="scannerPlaceholder" class="scanner-placeholder">
+              <div class="scan-illustration"><svg class="qr-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons.qr}</svg></div>
+              <p>Toca <strong>Abrir camara</strong> y apunta al codigo QR del carnet.</p>
             </div>
-            <div id="scanCrosshair" hidden style="position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center">
-              <div style="width:200px;height:200px;border:3px solid rgba(0,119,182,.8);border-radius:16px;box-shadow:0 0 0 9999px rgba(0,0,0,.35)"></div>
-            </div>
+            <div id="scanCrosshair" class="scan-frame" hidden><div class="scan-window"><i></i><i></i><i></i><i></i><span class="scan-line"></span></div></div>
           </div>
-          <p style="text-align:center;font-size:.78rem;color:var(--muted);margin-top:10px">Compatible con Chrome, Safari y Firefox - Requiere permiso de camara</p>
+          <p class="scan-hint">${icon("info")}Compatible con Chrome, Safari y Firefox · requiere permiso de camara</p>
         </div>
         ${isAuthenticated?`
         <aside class="panel">
-          <div class="panel-header"><div><h3>Registro manual</h3><p>Codigo, nombre o telefono.</p></div></div>
-          <form class="toolbar" data-form="quick-search">
-            <input class="search" type="search" data-filter="checkin-search" placeholder="Buscar alumno o codigo" value="${escapeHtml(checkinSearch)}">
-            <button class="btn primary" type="submit">${icon("check")} Registrar</button>
+          ${panelHead("Registro manual","Codigo, nombre o telefono.","edit")}
+          <form class="toolbar" data-form="quick-search" style="margin-bottom:12px">
+            ${searchBox('data-filter="checkin-search"',"Buscar alumno o codigo",checkinSearch)}
+            <button class="btn primary" type="submit">${icon("check")}Registrar</button>
           </form>
           ${renderStudentPickList(matches)}
         </aside>`:`
-        <aside class="panel" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;min-height:200px">
-          <div style="width:56px;height:56px;border-radius:50%;background:var(--primary-tint);display:flex;align-items:center;justify-content:center;color:var(--primary)">${icon("lock")}</div>
-          <div><p style="font-weight:600;margin:0 0 4px;color:var(--ink)">Registro manual solo para administradores</p><p style="font-size:.82rem;color:var(--muted);margin:0">Usa el escaner QR para registrar asistencia.</p></div>
-          <button class="btn primary" type="button" data-action="open-login">${icon("lock")} Administrar</button>
+        <aside class="panel lock-card">
+          <span class="icon-badge" style="width:56px;height:56px;border-radius:18px">${icon("lock")}</span>
+          <div><p style="font-weight:700;margin:0 0 4px;color:var(--ink)">Registro manual solo para administradores</p><p style="font-size:.84rem;color:var(--muted)">Usa el escaner QR para registrar asistencia.</p></div>
+          <button class="btn primary" type="button" data-action="open-login">${icon("lock")}Administrar</button>
         </aside>`}
       </section>`;
   }
@@ -833,15 +1062,12 @@
   /* REGISTRO PUBLICO DE ALUMNO */
   function renderRegister(){
     return `
-      <div class="view-header">
-        <div><h2>Registrar nuevo alumno</h2><p>Completa el formulario para agregar un alumno a ACQUA NATACION.</p></div>
-      </div>
-      <section class="panel" style="max-width:560px;margin:0 auto">
-        <div class="panel-header">
-          <div><h3>Datos del alumno</h3><p>El codigo de carnet se asigna automaticamente.</p></div>
-        </div>
+      ${renderHeader("Registrar nuevo alumno","Completa el formulario para agregar un alumno a ACQUA NATACION.")}
+      <section class="panel" style="max-width:760px;margin:0 auto">
+        ${panelHead("Datos del alumno","El codigo de carnet se asigna automaticamente.","userPlus")}
         <form id="studentFormPublic" class="field-grid">
-          <label class="field wide">Nombre completo <span style="color:var(--danger)">*</span><input name="name" required autocomplete="name" placeholder="Nombre y apellidos"></label>
+          <div class="field-section">Datos personales</div>
+          <label class="field wide">Nombre completo <span class="req">*</span><input name="name" required autocomplete="name" placeholder="Nombre y apellidos"></label>
           <label class="field">Documento de identidad<input name="documento" inputmode="numeric" placeholder="CC / TI / CE"></label>
           <label class="field">Tipo
             <select name="category">
@@ -851,12 +1077,13 @@
             </select>
           </label>
           <label class="field">Fecha de nacimiento<input name="birthdate" type="date"></label>
-          <label class="field">Telefono <span style="color:var(--danger)">*</span><input name="phone" inputmode="tel" required placeholder="300 000 0000"></label>
+          <label class="field">Telefono <span class="req">*</span><input name="phone" inputmode="tel" required placeholder="300 000 0000"></label>
           <label class="field">Acudiente o contacto<input name="responsible" placeholder="Nombre del acudiente"></label>
           <label class="field">Telefono del acudiente<input name="phoneAcudiente" inputmode="tel" placeholder="300 000 0000"></label>
           <label class="field">Correo<input name="email" type="email" placeholder="correo@ejemplo.com"></label>
           <label class="field">Nivel del alumno<select name="nivel"><option value="">Sin nivel asignado</option><option value="1">Nivel 1</option><option value="2">Nivel 2</option><option value="3">Nivel 3</option><option value="4">Nivel 4</option><option value="5">Nivel 5</option><option value="6">Nivel 6</option><option value="7">Nivel 7</option><option value="8">Nivel 8</option></select></label>
-         <label class="field">Plan mensual
+          <div class="field-section">Plan y nivel</div>
+          <label class="field">Plan mensual
             <select name="planType" data-plan-select>
               <option value="1_practica">1 practica libre</option>
               <option value="1_grupal">1 clase grupal</option>
@@ -870,9 +1097,9 @@
               <option value="matronat_4">Matronatacion 4 clases/mes</option>
               <option value="matronat_8">Matronatacion 8 clases/mes</option>
               <option value="matronat_personalizada_4">4 clases de Matronatacion personalizadas</option>
-              <option value="anual_4">Plan anual 4 clases</option>
-              <option value="anual_9">Plan anual 9 clases</option>
-              <option value="anual_13">Plan anual 13 clases</option>
+              <option value="anual_4">Plan anual 4 clases/mes</option>
+              <option value="anual_9">Plan anual 9 clases/mes</option>
+              <option value="anual_13">Plan anual 13 clases/mes</option>
               <option value="personalizado_4">Personalizado 4 clases</option>
               <option value="personalizado_8">Personalizado 8 clases</option>
               <option value="obsequio_1">Obsequio 1 clase</option>
@@ -881,10 +1108,12 @@
               <option value="custom">Personalizado</option>
             </select>
           </label>
+          <div class="callout wide" style="font-size:.8rem">${icon("clock")}<span><strong>Todos los planes duran 30 dias</strong> contados desde la primera clase (el plan anual dura 1 año).</span></div>
           <label class="field" data-custom-classes hidden>Numero de clases<input name="customClasses" type="number" min="1" max="80" value="1"></label>
+          <div class="field-section">Salud y dotacion</div>
           <label class="field">Estatura (cm)<input name="talla" type="number" min="30" max="250" placeholder="Ej: 120"></label>          <label class="field">Peso (kg)<input name="peso" type="number" min="1" max="300" placeholder="Ej: 45"></label>          <label class="field">Tipo de sangre<select name="sangre"><option value="">Seleccionar</option><option>O+</option><option>O-</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option></select></label>          <label class="field">EPS<input name="eps" placeholder="Ej: Sura, Sanitas..."></label>          <label class="field">Talla camiseta<select name="camiseta"><option value="">Seleccionar</option><option>2</option><option>4</option><option>6</option><option>8</option><option>10</option><option>12</option><option>14</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option></select></label>          <label class="field wide">Notas u observaciones<textarea name="notes" placeholder="Alergias, condiciones medicas, horario preferido..."></textarea></label>
           <div class="split-actions wide" style="margin-top:4px">
-            <button class="btn primary" type="submit" style="flex:1;justify-content:center;min-height:46px">${icon("save")} Registrar alumno</button>
+            <button class="btn primary lg" type="submit" style="flex:1">${icon("save")} Registrar alumno</button>
           </div>
         </form>
       </section>`;
@@ -893,32 +1122,29 @@
 /* CARNETS QR */
   function renderCards(){
     const students=filteredStudents({search:cardSearch,status:"active"});
-    return `${renderHeader("Carnets QR","Cada alumno conserva el mismo codigo. Solo se renueva el cupo al cambiar de mes.",`<button class="btn no-print" type="button" data-action="print-cards">${icon("print")}Imprimir todos</button>`)}<section class="panel print-area"><div class="toolbar" style="margin-bottom:14px"><input class="search" type="search" data-filter="cards-search" placeholder="Buscar carnet" value="${escapeHtml(cardSearch)}"></div>${students.length?`<div class="qr-grid">${students.map(renderQrCard).join("")}</div>`:'<div class="empty">No hay carnets para mostrar.</div>'}</section>`;
+    return `${renderHeader("Carnets QR","Cada alumno conserva el mismo codigo. Solo se renueva el cupo al cambiar de mes.",`<button class="btn primary no-print" type="button" data-action="print-cards">${icon("print")}Imprimir todos</button>`)}<section class="panel print-area"><div class="toolbar filter-bar no-print">${searchBox('data-filter="cards-search"',"Buscar carnet por nombre o codigo",cardSearch)}<span class="badge info">${students.length} carnet${students.length===1?"":"s"}</span></div>${students.length?`<div class="qr-grid">${students.map(renderQrCard).join("")}</div>`:'<div class="empty">No hay carnets para mostrar.</div>'}</section>`;
   }
   function renderQrCard(student){
     const qr=qrSvg(qrPayload(student));
     const diasRestantesMes=diasVigenciaPlan(student.planType);
     const parts=student.name.toUpperCase().trim().split(/\s+/);
-    // Divide: primera(s) linea = nombre(s), segunda = apellido(s)
     let splitIdx=parts.length>=4?2:1;
     const nombres=parts.slice(0,splitIdx).join(' ');
     const apellidos=parts.slice(splitIdx).join(' ');
-    return `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
-    <article style="position:relative;width:270px;height:450px;border-radius:18px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.4);break-inside:avoid;page-break-inside:avoid" id="card-${escapeHtml(student.id)}">
-      <img src="assets/carnet-Acqua.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;border-radius:18px;display:block" alt="">
-      <!-- QR mas abajo para no tapar el logo ACQUA -->
-      <div style="position:absolute;top:25%;left:50%;transform:translateX(-50%);width:71%;border-radius:10px;overflow:hidden;background:#fff;line-height:0">${qr}</div>
-      <!-- Nombre + tipo + dias + fundacion -->
-      <div style="position:absolute;top:67%;left:0;right:0;text-align:center;padding:0 8px;color:#0a2472;font-weight:800;letter-spacing:.04em;line-height:1.3">
-        <div style="font-size:1.15rem">${escapeHtml(nombres)}</div>
-        ${apellidos?`<div style="font-size:1.15rem">${escapeHtml(apellidos)}</div>`:''}
-        <div style="font-size:.9rem;font-weight:800;color:#FF6B00;margin-top:4px;letter-spacing:.02em">${{Nino:'Infantil',Adulto:'Adulto',Matronatacion:'Matronatacion','Practica libre':'Practica libre'}[student.category]||escapeHtml(student.category||'')}</div>
-        <div style="font-size:.72rem;font-weight:700;color:#0a2472;margin-top:3px;letter-spacing:.08em">${escapeHtml(student.code)}</div>
-        <div style="font-size:.68rem;font-weight:600;color:#0a2472;margin-top:3px">Tienes ${diasRestantesMes} dias para consumir tu plan</div>
+    return `<div class="carnet-item">
+    <article style="position:relative;width:270px;height:450px;border-radius:20px;overflow:hidden;box-shadow:0 18px 40px -16px rgba(4,15,38,.55);break-inside:avoid;page-break-inside:avoid" id="card-${escapeHtml(student.id)}">
+      <img src="assets/carnet-Acqua.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;display:block" alt="">
+      <div style="position:absolute;top:15%;left:50%;transform:translateX(-50%);width:71%;border-radius:12px;overflow:hidden;background:#fff;line-height:0;box-shadow:0 6px 18px rgba(10,36,114,.25)">${qr}</div>
+      <div style="position:absolute;top:67%;left:0;right:0;text-align:center;padding:0 10px;color:#0a2472;font-family:var(--font-display);font-weight:800;letter-spacing:.01em;line-height:1.12">
+        <div style="font-size:1.12rem">${escapeHtml(nombres)}</div>
+        ${apellidos?`<div style="font-size:1.12rem">${escapeHtml(apellidos)}</div>`:''}
+        <div style="display:inline-block;font-family:var(--font-body);font-size:.68rem;font-weight:800;color:#fff;background:#FF6B00;margin-top:6px;padding:2px 10px;border-radius:999px;letter-spacing:.08em;text-transform:uppercase">${{Nino:'Infantil',Adulto:'Adulto',Matronatacion:'Matronatacion','Practica libre':'Practica libre'}[student.category]||escapeHtml(student.category||'')}</div>
+        <div style="font-family:var(--font-body);font-size:.72rem;font-weight:800;color:#0a2472;margin-top:5px;letter-spacing:.14em">${escapeHtml(student.code)}</div>
+        <div style="font-family:var(--font-body);font-size:.64rem;font-weight:600;color:#33508f;margin-top:2px;max-width:150px;margin-left:auto;margin-right:auto">${diasRestantesMes>=365?"Vigencia: 1 año":"Vigencia: "+diasRestantesMes+" días"}<br><span style="font-weight:500;opacity:.85">desde tu primera clase</span></div>
       </div>
-      <div style="position:absolute;bottom:3%;left:0;right:0;text-align:center;font-size:.62rem;color:#6688bb;letter-spacing:.18em;font-weight:700">DESDE 2015</div>
+      <div style="position:absolute;bottom:3%;left:0;right:0;text-align:center;font-size:.6rem;color:#6688bb;letter-spacing:.22em;font-weight:800">DESDE 2015</div>
     </article>
-    <button class="btn no-print" type="button" data-action="print-one-card" data-id="${escapeHtml(student.id)}" style="width:270px;justify-content:center">${icon("print")} Imprimir carnet</button>
+    <button class="btn outline no-print" type="button" data-action="print-one-card" data-id="${escapeHtml(student.id)}">${icon("print")}Imprimir carnet</button>
     </div>`;
   }
 
@@ -933,14 +1159,13 @@
     const year=cm.getFullYear(), month=cm.getMonth();
     const firstDay=new Date(year,month,1).getDay();
     const daysInMonth=new Date(year,month+1,0).getDate();
-    const todayStr=new Date().toISOString().slice(0,10);
+    const todayStr=localDateStr(new Date().toISOString());
     const allEvts=[
       ...state.events.map(function(e){ return Object.assign({},e,{tipo:"externo"}); }),
       ...(state.internalEvents||[]).map(function(e){ return Object.assign({},e,{tipo:"interno"}); })
     ];
     const label=new Intl.DateTimeFormat("es-CO",{month:"long",year:"numeric"}).format(new Date(year,month,1));
     const dias=["Dom","Lun","Mar","Mie","Jue","Vie","Sab"];
-
     let cells="";
     for(let i=0;i<firstDay;i++) cells+='<div class="cal-cell empty"></div>';
     for(let d=1;d<=daysInMonth;d++){
@@ -950,103 +1175,84 @@
       let evtHtml="";
       dayEvts.forEach(function(e){
         const cls=e.tipo==="interno"?"cal-evt-int":"cal-evt-ext";
-        const nm=e.name.length>16?e.name.slice(0,15)+"...":e.name;
-        evtHtml+='<div class="cal-evt '+cls+'" title="'+escapeHtml(e.name)+'">'+escapeHtml(nm)+'</div>';
+        evtHtml+='<div class="cal-evt '+cls+'" title="'+escapeHtml(e.name)+'">'+escapeHtml(e.name)+'</div>';
       });
       cells+='<div class="cal-cell'+(isToday?" today":"")+'"><span class="cal-day-num">'+d+'</span>'+evtHtml+'</div>';
     }
-
     const diasHtml=dias.map(function(d){ return '<div class="cal-head">'+d+'</div>'; }).join("");
-
-    return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px">'
-      +'<button class="btn" type="button" data-action="cal-prev">&larr;</button>'
-      +'<strong style="font-size:.95rem;text-transform:capitalize;flex:1;text-align:center">'+escapeHtml(label)+'</strong>'
-      +'<button class="btn" type="button" data-action="cal-next">&rarr;</button>'
+    return '<div class="cal-toolbar">'
+      +'<button class="btn icon" type="button" aria-label="Mes anterior" data-action="cal-prev">'+icon("chevronLeft")+'</button>'
+      +'<strong>'+escapeHtml(label)+'</strong>'
+      +'<button class="btn icon" type="button" aria-label="Mes siguiente" data-action="cal-next">'+icon("chevronRight")+'</button>'
       +'</div>'
       +'<div class="cal-grid">'+diasHtml+cells+'</div>'
-      +'<div style="margin-top:10px;display:flex;gap:12px;font-size:.75rem;flex-wrap:wrap">'
-      +'<span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#FEF3C7;border-left:3px solid #F59E0B;display:inline-block"></span>Externo</span>'
-      +'<span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#DBEAFE;border-left:3px solid #3B82F6;display:inline-block"></span>Interno</span>'
-      +'</div>';
+      +'<div class="cal-legend"><span><i style="background:#FFF1E0;box-shadow:inset 3px 0 0 var(--coral)"></i>Externo</span><span><i style="background:var(--teal-tint);box-shadow:inset 3px 0 0 var(--cyan-500)"></i>Interno</span></div>';
   }
 
   function renderEvents(){
     try {
       const ev=activeEventId?getEvent(activeEventId):null;
       if(ev) return renderEventDetail(ev);
-
       const ordered=[...state.events].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
       const internal=[...(state.internalEvents||[])].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
-
-      const btnL='<button class="btn '+(calendarView==="list"?"primary":"")+ '" type="button" data-action="events-view-list">Lista</button>';
-      const btnC='<button class="btn '+(calendarView==="calendar"?"primary":"")+ '" type="button" data-action="events-view-calendar">Calendario</button>';
-      const viewBtns='<div style="display:flex;gap:8px;flex-wrap:wrap">'+btnL+btnC+'</div>';
-
+      const viewBtns='<div class="seg" role="tablist">'
+        +'<button class="btn '+(calendarView==="list"?"primary":"")+'" type="button" data-action="events-view-list">'+icon("list")+'Lista</button>'
+        +'<button class="btn '+(calendarView==="calendar"?"primary":"")+'" type="button" data-action="events-view-calendar">'+icon("calendar")+'Calendario</button>'
+        +'</div>';
       let calBlock="";
       if(calendarView==="calendar"){
-        try{ calBlock='<div class="panel" style="margin-top:16px">'+renderCalendar()+'</div>'; }
-        catch(ce){ calBlock='<div class="panel"><p style="color:red;padding:1rem">Error calendario: '+ce.message+'</p></div>'; }
+        try{ calBlock='<div class="panel" style="margin-bottom:16px">'+renderCalendar()+'</div>'; }
+        catch(ce){ calBlock='<div class="panel"><div class="callout danger">Error calendario: '+escapeHtml(ce.message)+'</div></div>'; }
       }
-
-      const extHtml=ordered.length
-        ? '<div class="event-list">'+ordered.map(renderEventCard).join("")+'</div>'
-        : '<div class="empty">No hay eventos externos todavia.</div>';
-
-      const intHtml=internal.length
-        ? '<div class="event-list">'+internal.map(renderInternalEventCard).join("")+'</div>'
-        : '<div class="empty">No hay eventos internos todavia.</div>';
-
+      const extHtml=ordered.length?'<div class="event-list">'+ordered.map(renderEventCard).join("")+'</div>':'<div class="empty">No hay eventos externos todavia.</div>';
+      const intHtml=internal.length?'<div class="event-list">'+internal.map(renderInternalEventCard).join("")+'</div>':'<div class="empty">No hay eventos internos todavia.</div>';
       return renderHeader("Eventos y calendario","Gestiona competencias, travesias y actividades internas.",viewBtns)
         + calBlock
         + '<section class="events-layout">'
         + '<div class="panel">'
-        +   '<div class="panel-header"><div><h3>Nuevo evento externo</h3><p>Competencia, travesia o salida.</p></div></div>'
+        +   panelHead("Nuevo evento externo","Competencia, travesia o salida.","map")
         +   '<form id="eventForm" class="field-grid">'
         +     renderEventFields(null)
-        +     '<div class="split-actions wide"><button class="btn accent" type="submit">Crear externo</button></div>'
+        +     '<div class="split-actions wide"><button class="btn primary" type="submit">'+icon("plus")+'Crear evento externo</button></div>'
         +   '</form>'
-        +   '<div style="border-top:1px solid var(--line-opaque);margin-top:16px;padding-top:14px">'
-        +     '<div class="panel-header" style="padding:0 0 10px"><div><h3>Nuevo evento interno</h3><p>Fiestas y actividades en instalaciones.</p></div></div>'
+        +   '<div class="panel-divider">'
+        +     panelHead("Nuevo evento interno","Fiestas y actividades en instalaciones.","sparkles")
         +     '<form id="internalEventForm" class="field-grid">'
         +       '<label class="field wide">Nombre<input name="iEventName" required placeholder="Fiesta, Cumpleanos..."></label>'
         +       '<label class="field">Fecha<input name="iEventDate" type="date" required></label>'
         +       '<label class="field">Hora inicio<input name="iEventStart" type="time"></label>'
         +       '<label class="field">Hora fin<input name="iEventEnd" type="time"></label>'
         +       '<label class="field wide">Descripcion<input name="iEventDesc" placeholder="Detalles adicionales..."></label>'
-        +       '<div class="split-actions wide"><button class="btn primary" type="submit">Agregar al calendario</button></div>'
+        +       '<div class="split-actions wide"><button class="btn" type="submit">'+icon("plus")+'Agregar al calendario</button></div>'
         +     '</form>'
         +   '</div>'
         + '</div>'
         + '<div class="panel">'
-        +   '<div class="panel-header"><div><h3>Externos ('+state.events.length+')</h3><p>Competencias y travesias.</p></div></div>'
+        +   panelHead('Externos <span class="badge info" style="margin-left:6px;vertical-align:middle">'+state.events.length+'</span>',"Competencias y travesias.","flag")
         +   extHtml
-        +   '<div class="panel-header" style="margin-top:16px;padding:12px 0 8px;border-top:1px solid var(--line-opaque)"><div><h3>Internos ('+(state.internalEvents||[]).length+')</h3><p>Fiestas y actividades.</p></div></div>'
+        +   '<div class="panel-divider">'
+        +   panelHead('Internos <span class="badge info" style="margin-left:6px;vertical-align:middle">'+(state.internalEvents||[]).length+'</span>',"Fiestas y actividades.","sparkles")
         +   intHtml
+        +   '</div>'
         + '</div>'
         + '</section>';
     } catch(e) {
       console.error("renderEvents error:", e);
-      return '<div style="padding:2rem;color:red;text-align:center">'
-        + '<h2>Error al cargar Eventos</h2>'
-        + '<p style="margin:10px 0;font-size:.9rem">'+e.message+'</p>'
-        + '<button class="btn primary" onclick="location.reload()">Recargar</button>'
-        + '</div>';
+      return '<div class="panel" style="text-align:center"><div class="callout danger" style="justify-content:center"><strong>Error al cargar Eventos:</strong> '+escapeHtml(e.message)+'</div><button class="btn primary" style="margin-top:14px" onclick="location.reload()">Recargar</button></div>';
     }
   }
   function renderInternalEventCard(event){
     const horario=event.start?(event.start+(event.end?" - "+event.end:"")):"Sin horario";
-    const descHtml=event.desc?'<p style="font-size:.78rem;color:var(--muted);margin:4px 0 0">'+escapeHtml(event.desc)+'</p>':"";
-    return '<article class="event-card" style="border-left:3px solid var(--primary)">'
-      +'<div>'
+    const descHtml=event.desc?'<p style="font-size:.8rem;color:var(--muted);margin:4px 0 0">'+escapeHtml(event.desc)+'</p>':"";
+    return '<article class="event-card is-internal">'
+      +dateTile(event.date,"is-internal")
+      +'<div style="min-width:0">'
       +'<strong>'+escapeHtml(event.name)+'</strong>'
-      +'<div class="meta">'
-      +'<span>'+icon("calendar")+escapeHtml(event.date||"Sin fecha")+'</span>'
-      +'<span>'+icon("stop")+escapeHtml(horario)+'</span>'
-      +'</div>'
+      +'<div class="meta"><span>'+icon("calendar")+escapeHtml(prettyDate(event.date))+'</span><span>'+icon("clock")+escapeHtml(horario)+'</span></div>'
       +descHtml
       +'</div>'
       +'<div class="event-actions">'
-      +'<button class="btn icon danger" type="button" title="Eliminar" data-action="delete-internal-event" data-id="'+escapeHtml(event.id)+'">'+icon("trash")+'</button>'
+      +'<button class="btn icon danger" type="button" title="Eliminar" aria-label="Eliminar evento interno" data-action="delete-internal-event" data-id="'+escapeHtml(event.id)+'">'+icon("trash")+'</button>'
       +'</div>'
       +'</article>';
   }
@@ -1054,36 +1260,50 @@
   function renderEventCard(event){
     const attendees=event.attendees||[];
     const paid=attendees.filter(a=>a.paid).length, signed=attendees.filter(a=>a.signed).length;
-    return `<article class="event-card"><div><strong>${escapeHtml(event.name)}</strong><div class="meta"><span>${icon("calendar")}${escapeHtml(event.date||"Sin fecha")}</span><span>${icon("map")}${escapeHtml(event.place||"Sin lugar")}</span></div><div class="event-metrics"><span>${attendees.length} inscritos</span><span>${paid} pagos</span><span>${signed} firmas</span></div></div><div class="event-actions"><button class="btn primary" type="button" data-action="view-event" data-id="${escapeHtml(event.id)}">Gestionar</button><button class="btn icon" type="button" title="Enviar enlace de inscripcion por WhatsApp" data-action="share-event-link" data-id="${escapeHtml(event.id)}" style="color:#25D366">${icon("message")}</button><button class="btn icon" type="button" title="Exportar listado a Excel" data-action="export-event-xlsx" data-id="${escapeHtml(event.id)}">${icon("download")}</button><button class="btn icon danger" type="button" title="Eliminar" data-action="delete-event" data-id="${escapeHtml(event.id)}">${icon("trash")}</button></div></article>`;
+    const id=escapeHtml(event.id);
+    return `<article class="event-card">${dateTile(event.date)}<div style="min-width:0"><strong>${escapeHtml(event.name)}</strong><div class="meta"><span>${icon("calendar")}${escapeHtml(prettyDate(event.date))}</span><span>${icon("map")}${escapeHtml(event.place||"Sin lugar")}</span></div><div class="event-metrics"><span><b>${attendees.length}</b> inscritos</span><span><b>${paid}</b> pagos</span><span><b>${signed}</b> firmas</span></div></div><div class="event-actions"><button class="btn primary" type="button" data-action="view-event" data-id="${id}">Gestionar${icon("chevronRight")}</button><button class="btn icon wa-soft" type="button" title="Enviar enlace de inscripcion por WhatsApp" aria-label="Enviar enlace por WhatsApp" data-action="share-event-link" data-id="${id}">${icon("message")}</button><button class="btn icon" type="button" title="Exportar listado a Excel" aria-label="Exportar a Excel" data-action="export-event-xlsx" data-id="${id}">${icon("download")}</button><button class="btn icon danger" type="button" title="Eliminar" aria-label="Eliminar evento" data-action="delete-event" data-id="${id}">${icon("trash")}</button></div></article>`;
   }
   function renderEventDetail(event){
     const attendees=event.attendees||[];
     const available=state.students.filter(s=>s.status==="active"&&!attendees.some(a=>a.studentId===s.id)).sort((a,b)=>a.name.localeCompare(b.name,"es"));
     const paid=attendees.filter(a=>a.paid).length, signed=attendees.filter(a=>a.signed).length;
-    return `<div class="detail-shell"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><button class="btn ghost" type="button" data-action="back-events">${icon("arrowLeft")}Volver a eventos</button><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" data-action="share-event-link" data-id="${escapeHtml(event.id)}" style="background:#25D366;color:#fff">${icon("message")}Enviar enlace de inscripcion</button><button class="btn" type="button" data-action="export-event-xlsx" data-id="${escapeHtml(event.id)}">${icon("download")}Exportar listado Excel</button><button class="btn" type="button" data-action="edit-event" data-id="${escapeHtml(event.id)}">${icon("edit")}Editar evento</button><button class="btn" type="button" data-action="duplicate-event" data-id="${escapeHtml(event.id)}">${icon("plus")}Duplicar</button><button class="btn ghost" type="button" data-action="preview-event-link" data-id="${escapeHtml(event.id)}">${icon("file")}Ver formulario</button></div></div>${eventEditId===event.id?renderEventEditPanel(event):""}<section class="event-hero"><div><img class="section-logo" src="assets/logo-acqua-blanco.png" alt="${escapeHtml(DEFAULT_BUSINESS)}"><span class="eyebrow">Evento activo</span><h2>${escapeHtml(event.name)}</h2><p>${icon("calendar")}${escapeHtml(event.date||"Sin fecha")} - ${icon("map")}${escapeHtml(event.place||"Sin lugar")}</p></div><div class="event-hero-stats"><span><strong>${attendees.length}</strong> inscritos</span><span><strong>${paid}</strong> pagados</span><span><strong>${signed}</strong> firmados</span></div></section><section class="grid cols-2"><div class="panel"><div class="panel-header"><div><h3>Inscribir alumno</h3><p>Busca por nombre, codigo o telefono. Solo aparecen alumnos activos no inscritos.</p></div></div>${renderEventEnrollPicker(event,available)}<div style="border-top:1px solid var(--line-opaque);margin-top:16px;padding-top:14px"><div class="panel-header" style="padding:0 0 10px"><div><h3>Inscribir persona particular</h3><p>Alguien que solo asiste a este evento puntual, sin ser alumno de la academia.</p></div></div><form id="eventGuestForm" class="field-grid"><input type="hidden" name="eventId" value="${escapeHtml(event.id)}"><label class="field wide">Nombre completo<input name="guestName" required placeholder="Nombre y apellidos"></label><label class="field">Edad<input name="guestAge" type="number" min="0" max="120" placeholder="Ej: 28"></label><label class="field">Telefono<input name="guestPhone" inputmode="tel" placeholder="300 000 0000"></label><div class="split-actions wide"><button class="btn accent" type="submit">${icon("plus")}Inscribir particular</button></div></form></div></div><div class="panel"><div class="panel-header"><div><h3>Control de inscritos</h3><p>Actualiza pagos y firmas antes del evento.</p></div></div>${attendees.length?`<div class="attendee-list">${attendees.map(a=>renderAttendeeRow(event,a)).join("")}</div>`:'<div class="empty">Aun no hay inscritos.</div>'}</div></section></div>`;
+    const id=escapeHtml(event.id);
+    return `<div class="detail-shell">
+      <div class="detail-bar"><button class="btn ghost" type="button" data-action="back-events">${icon("arrowLeft")}Volver a eventos</button>
+        <div><button class="btn wa" type="button" data-action="share-event-link" data-id="${id}">${icon("message")}Enviar enlace de inscripcion</button><button class="btn" type="button" data-action="export-event-xlsx" data-id="${id}">${icon("download")}Excel</button><button class="btn" type="button" data-action="edit-event" data-id="${id}">${icon("edit")}Editar</button><button class="btn" type="button" data-action="duplicate-event" data-id="${id}">${icon("copy")}Duplicar</button><button class="btn ghost" type="button" data-action="preview-event-link" data-id="${id}">${icon("eye")}Ver formulario</button></div>
+      </div>
+      ${eventEditId===event.id?renderEventEditPanel(event):""}
+      <section class="event-hero">${wavesSvg()}<div><img class="section-logo" src="assets/logo-acqua-blanco.png" alt="${escapeHtml(DEFAULT_BUSINESS)}"><span class="eyebrow">Evento activo</span><h2>${escapeHtml(event.name)}</h2><p><span>${icon("calendar")}${escapeHtml(prettyDate(event.date))}</span><span>${icon("map")}${escapeHtml(event.place||"Sin lugar")}</span></p></div><div class="event-hero-stats"><span><strong>${attendees.length}</strong>inscritos</span><span><strong>${paid}</strong>pagados</span><span><strong>${signed}</strong>firmados</span></div></section>
+      <section class="grid cols-2">
+        <div class="panel">${panelHead("Inscribir alumno","Solo aparecen alumnos activos no inscritos.","userPlus")}${renderEventEnrollPicker(event,available)}
+          <div class="panel-divider">${panelHead("Inscribir persona particular","Alguien que solo asiste a este evento, sin ser alumno de la academia.","user")}<form id="eventGuestForm" class="field-grid"><input type="hidden" name="eventId" value="${id}"><label class="field wide">Nombre completo<input name="guestName" required placeholder="Nombre y apellidos"></label><label class="field">Edad<input name="guestAge" type="number" min="0" max="120" placeholder="Ej: 28"></label><label class="field">Telefono<input name="guestPhone" inputmode="tel" placeholder="300 000 0000"></label><div class="split-actions wide"><button class="btn accent" type="submit">${icon("plus")}Inscribir particular</button></div></form></div>
+        </div>
+        <div class="panel">${panelHead("Control de inscritos","Actualiza pagos y firmas antes del evento.","check","ok")}${attendees.length?`<div class="attendee-list">${attendees.map(a=>renderAttendeeRow(event,a)).join("")}</div>`:'<div class="empty">Aun no hay inscritos.</div>'}</div>
+      </section></div>`;
   }
   function renderEventEnrollPicker(event,available){
     const q=eventEnrollSearch.trim().toLowerCase();
     const filtered=q?available.filter(s=>[s.name,s.code,s.phone].join(" ").toLowerCase().includes(q)):available;
     const shown=filtered.slice(0,8);
-    const searchBox=`<div class="toolbar" style="margin-bottom:12px"><input class="search" type="search" data-filter="event-enroll-search" placeholder="Buscar alumno para inscribir" value="${escapeHtml(eventEnrollSearch)}"></div>`;
-    if(!available.length) return searchBox+'<div class="empty">No hay alumnos activos disponibles para inscribir.</div>';
-    if(!shown.length) return searchBox+'<div class="empty">No hay alumnos que coincidan con la busqueda.</div>';
-    const list=`<div class="student-list">${shown.map(s=>`<article class="student-card"><div><strong>${escapeHtml(s.name)}</strong><div class="meta"><span>${escapeHtml(s.code)}</span><span>${escapeHtml(s.phone||"sin telefono")}</span></div></div><button class="btn primary" type="button" data-action="enroll-event-pick" data-event-id="${escapeHtml(event.id)}" data-id="${escapeHtml(s.id)}">${icon("plus")}Inscribir</button></article>`).join("")}</div>`;
+    const box=`<div class="toolbar filter-bar">${searchBox('data-filter="event-enroll-search"',"Buscar alumno para inscribir",eventEnrollSearch)}</div>`;
+    if(!available.length) return box+'<div class="empty">No hay alumnos activos disponibles para inscribir.</div>';
+    if(!shown.length) return box+'<div class="empty">No hay alumnos que coincidan con la busqueda.</div>';
+    const list=`<div class="student-list">${shown.map(s=>`<article class="student-card">${avatar(s.name,"sm")}<div class="sc-body"><strong>${escapeHtml(s.name)}</strong><div class="meta"><span>${escapeHtml(s.code)}</span><span>${escapeHtml(s.phone||"sin telefono")}</span></div></div><button class="btn primary" type="button" data-action="enroll-event-pick" data-event-id="${escapeHtml(event.id)}" data-id="${escapeHtml(s.id)}">${icon("plus")}Inscribir</button></article>`).join("")}</div>`;
     const more=filtered.length>shown.length?`<p class="muted">Hay ${filtered.length-shown.length} alumno(s) mas. Sigue escribiendo para filtrar.</p>`:"";
-    return searchBox+list+more;
+    return box+list+more;
   }
   function renderAttendeeRow(event,attendee){
     const info=attendeeDisplay(attendee);
     const badge=info.isGuest?'<span class="badge info" style="margin-left:6px">Particular</span>':"";
-    return `<article class="attendee-row"><div><strong>${escapeHtml(info.name)}</strong>${badge}<small>${escapeHtml(info.phone||"sin telefono")}${info.sub?" - "+escapeHtml(info.sub):""}</small></div><div class="attendee-actions"><button class="btn ${attendee.paid?"ok":""}" type="button" data-action="toggle-event-paid" data-event-id="${escapeHtml(event.id)}" data-attendee-id="${escapeHtml(attendee.id)}">${icon("dollar")}${attendee.paid?"Pagado":"Pendiente"}</button>${attendee.datos?`<button class="btn icon" type="button" title="Ver datos de inscripcion" data-action="view-attendee-data" data-event-id="${escapeHtml(event.id)}" data-attendee-id="${escapeHtml(attendee.id)}">${icon("file")}</button>`:""}<button class="btn ${attendee.signed?"ok":""}" type="button" data-action="open-signature" data-event-id="${escapeHtml(event.id)}" data-attendee-id="${escapeHtml(attendee.id)}">${icon("signature")}${attendee.signed?"Firmado":"Sin firmar"}</button><button class="btn icon danger" type="button" title="Quitar" data-action="remove-event-attendee" data-event-id="${escapeHtml(event.id)}" data-attendee-id="${escapeHtml(attendee.id)}">${icon("trash")}</button></div></article>`;
+    const eid=escapeHtml(event.id), aid=escapeHtml(attendee.id);
+    return `<article class="attendee-row"><div class="attendee-who">${avatar(info.name,"sm")}<div style="min-width:0"><strong>${escapeHtml(info.name)}${badge}</strong><small>${escapeHtml(info.phone||"sin telefono")}${info.sub?" · "+escapeHtml(info.sub):""}</small></div></div><div class="attendee-actions"><button class="btn ${attendee.paid?"ok":"outline"}" type="button" data-action="toggle-event-paid" data-event-id="${eid}" data-attendee-id="${aid}">${icon("dollar")}${attendee.paid?"Pagado":"Pendiente"}</button>${attendee.datos?`<button class="btn icon" type="button" title="Ver datos de inscripcion" aria-label="Ver datos de inscripcion" data-action="view-attendee-data" data-event-id="${eid}" data-attendee-id="${aid}">${icon("file")}</button>`:""}<button class="btn ${attendee.signed?"ok":"outline"}" type="button" data-action="open-signature" data-event-id="${eid}" data-attendee-id="${aid}">${icon("signature")}${attendee.signed?"Firmado":"Sin firmar"}</button><button class="btn icon danger" type="button" title="Quitar" aria-label="Quitar inscrito" data-action="remove-event-attendee" data-event-id="${eid}" data-attendee-id="${aid}">${icon("trash")}</button></div></article>`;
   }
   function renderSignatureModal(draft){
     const event=getEvent(draft.eventId);
     const attendee=event?.attendees?.find(a=>a.id===draft.attendeeId);
     if(!event||!attendee) return "";
     const info=attendeeDisplay(attendee);
-    return `<div class="modal-backdrop" role="dialog" aria-modal="true" aria-label="Firma de exoneracion"><div class="modal-panel signature-panel"><div class="modal-header"><div><img class="modal-logo" src="assets/logo-acqua-blanco.png" alt="${escapeHtml(DEFAULT_BUSINESS)}"><span class="eyebrow">Documento digital</span><h3>Firma de exoneracion</h3></div><button class="btn icon" type="button" title="Cerrar" data-action="close-signature">${icon("x")}</button></div><div class="waiver-copy"><p><strong>${info.isGuest?"Participante":"Estudiante"}:</strong> ${escapeHtml(info.name)}<br><strong>Evento:</strong> ${escapeHtml(event.name)}</p><p style="font-weight:700;margin:12px 0 6px">DECLARACIONES Y AUTORIZACION</p><ol style="padding-left:18px;margin:0;display:grid;gap:7px;font-size:.82rem;line-height:1.55"><li><strong>Conocimiento del Evento:</strong> Declaro conocer las condiciones de participacion del evento y autorizo la asistencia del participante. Entiendo que las actividades fuera de la sede tienen condiciones muy diferentes a una clase regular, como corrientes, profundidad variable, oleaje y cambios de clima.</li><li><strong>Estado de Salud:</strong> Certifico que el participante se encuentra en buen estado de salud. Me comprometo a informar cualquier novedad medica, alergia o malestar relevante antes del inicio del evento.</li><li><strong>Supervision y Seguridad:</strong> Acepto que la participacion se realizara bajo la supervision del equipo de ACQUA NATACION, y me aseguro de que el participante acatara todas sus instrucciones y normas de seguridad.</li><li><strong>Exoneracion:</strong> Acepto los riesgos naturales de la actividad deportiva en exteriores y exonero de responsabilidad a ACQUA NATACION por cualquier incidente o lesion que ocurra durante el evento, siempre que la academia haya cumplido con las medidas de seguridad correspondientes.</li><li><strong>Atencion Medica:</strong> En caso de emergencia, autorizo al personal a brindar primeros auxilios o a trasladar al participante al centro medico mas cercano si es necesario.</li><li><strong>Uso de Imagen:</strong> Autorizo a ACQUA NATACION a tomar fotografias y/o videos del participante durante el evento y a publicarlos en sus redes sociales y demas medios promocionales, sin que esto genere ninguna contraprestacion economica.</li></ol></div><form id="signatureForm" class="field-grid"><input type="hidden" name="eventId" value="${escapeHtml(event.id)}"><input type="hidden" name="attendeeId" value="${escapeHtml(attendee.id)}"><label class="field wide consent"><input name="accepted" type="checkbox" required>Confirmo que lei y acepto los terminos de exoneracion y responsabilidad.</label><label class="field">Nombre de quien firma<input name="signatureName" required placeholder="Acudiente o participante mayor de edad" value="${escapeHtml(info.isGuest?info.name:"")}"></label><label class="field">Documento<input name="signatureDocument" required inputmode="numeric" placeholder="CC / TI / CE"></label><div class="split-actions wide"><button class="btn" type="button" data-action="close-signature">Cancelar</button><button class="btn primary" type="submit">${icon("signature")}Firmar documento</button></div></form></div></div>`;
+    return `<div class="modal-backdrop" role="dialog" aria-modal="true" aria-label="Firma de exoneracion"><div class="modal-panel signature-panel"><div class="modal-header"><div><img class="modal-logo" src="assets/logo-acqua-blanco.png" alt="${escapeHtml(DEFAULT_BUSINESS)}"><span class="eyebrow">Documento digital</span><h3>Firma de exoneracion</h3></div><button class="btn icon" type="button" title="Cerrar" aria-label="Cerrar" data-action="close-signature">${icon("x")}</button></div><div class="waiver-copy"><p><strong>${info.isGuest?"Participante":"Estudiante"}:</strong> ${escapeHtml(info.name)}<br><strong>Evento:</strong> ${escapeHtml(event.name)}</p><p style="font-weight:700;margin:12px 0 6px">DECLARACIONES Y AUTORIZACION</p><ol><li><strong>Conocimiento del Evento:</strong> Declaro conocer las condiciones de participacion del evento y autorizo la asistencia del participante. Entiendo que las actividades fuera de la sede tienen condiciones muy diferentes a una clase regular, como corrientes, profundidad variable, oleaje y cambios de clima.</li><li><strong>Estado de Salud:</strong> Certifico que el participante se encuentra en buen estado de salud. Me comprometo a informar cualquier novedad medica, alergia o malestar relevante antes del inicio del evento.</li><li><strong>Supervision y Seguridad:</strong> Acepto que la participacion se realizara bajo la supervision del equipo de ACQUA NATACION, y me aseguro de que el participante acatara todas sus instrucciones y normas de seguridad.</li><li><strong>Exoneracion:</strong> Acepto los riesgos naturales de la actividad deportiva en exteriores y exonero de responsabilidad a ACQUA NATACION por cualquier incidente o lesion que ocurra durante el evento, siempre que la academia haya cumplido con las medidas de seguridad correspondientes.</li><li><strong>Atencion Medica:</strong> En caso de emergencia, autorizo al personal a brindar primeros auxilios o a trasladar al participante al centro medico mas cercano si es necesario.</li><li><strong>Uso de Imagen:</strong> Autorizo a ACQUA NATACION a tomar fotografias y/o videos del participante durante el evento y a publicarlos en sus redes sociales y demas medios promocionales, sin que esto genere ninguna contraprestacion economica.</li></ol></div><form id="signatureForm" class="field-grid"><input type="hidden" name="eventId" value="${escapeHtml(event.id)}"><input type="hidden" name="attendeeId" value="${escapeHtml(attendee.id)}"><label class="field wide consent"><input name="accepted" type="checkbox" required>Confirmo que lei y acepto los terminos de exoneracion y responsabilidad.</label><label class="field">Nombre de quien firma<input name="signatureName" required placeholder="Acudiente o participante mayor de edad" value="${escapeHtml(info.isGuest?info.name:"")}"></label><label class="field">Documento<input name="signatureDocument" required inputmode="numeric" placeholder="CC / TI / CE"></label><div class="split-actions wide"><button class="btn" type="button" data-action="close-signature">Cancelar</button><button class="btn primary" type="submit">${icon("signature")}Firmar documento</button></div></form></div></div>`;
   }
 
   /* REPORTES */
@@ -1105,12 +1325,14 @@
     if(!allTypes.length) return '<div class="empty">Aun no hay alumnos registrados.</div>';
     const totalSold=Object.values(soldByType).reduce((sum,arr)=>sum+arr.length,0);
     const totalActive=Object.values(activeByType).reduce((sum,arr)=>sum+arr.length,0);
+    const maxActive=Math.max(1,...allTypes.map(t=>(activeByType[t]||[]).length));
+    const maxSold=Math.max(1,...allTypes.map(t=>(soldByType[t]||[]).length));
     const rows=allTypes.map(type=>{
       const sold=soldByType[type]||[], active=activeByType[type]||[];
       const soldNames=sold.length?sold.map(s=>escapeHtml(s.name)).join(", "):"—";
-      return `<tr><td><strong>${escapeHtml(planTypeLabel(type))}</strong></td><td style="text-align:center"><span class="badge ${sold.length?"info":""}">${sold.length}</span></td><td style="font-size:.78rem;color:var(--muted)">${soldNames}</td><td style="text-align:center"><span class="badge ${active.length?"ok":""}">${active.length}</span></td></tr>`;
+      return `<tr><td><strong>${escapeHtml(planTypeLabel(type))}</strong></td><td style="min-width:150px"><div style="display:flex;align-items:center;gap:10px"><span class="num" style="font-weight:800;min-width:22px;color:var(--ink)">${sold.length}</span><div class="bar" style="flex:1"><i style="width:${sold.length/maxSold*100}%"></i></div></div></td><td style="font-size:.78rem;color:var(--muted);max-width:340px">${soldNames}</td><td style="min-width:150px"><div style="display:flex;align-items:center;gap:10px"><span class="num" style="font-weight:800;min-width:22px;color:var(--ink)">${active.length}</span><div class="bar ok" style="flex:1"><i style="width:${active.length/maxActive*100}%"></i></div></div></td></tr>`;
     }).join("");
-    return `<div class="table-wrap"><table><thead><tr><th>Plan</th><th>Vendidos/renovados</th><th>Quien</th><th>Activos ahora</th></tr></thead><tbody>${rows}</tbody></table></div><p style="margin-top:10px;font-size:.82rem;color:var(--muted)">Total vendidos o renovados en ${escapeHtml(monthLabel(state.currentMonth))}: <strong>${totalSold}</strong> — Total de planes activos ahora mismo: <strong>${totalActive}</strong></p>`;
+    return `<div class="sum-strip" style="margin:0 0 16px"><div><span>Vendidos o renovados · ${escapeHtml(monthLabel(state.currentMonth))}</span><strong class="num">${totalSold}</strong></div><div><span>Planes activos ahora</span><strong class="num">${totalActive}</strong></div><div><span>Tipos de plan en uso</span><strong class="num">${allTypes.length}</strong></div></div><div class="table-wrap"><table class="plan-bars"><thead><tr><th>Plan</th><th>Vendidos / renovados</th><th>Quien</th><th>Activos ahora</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
   /* Entradas de asistencia que se estan mostrando actualmente en Reportes:
      con busqueda activa, TODO el historial de ese alumno; sin busqueda, solo
@@ -1129,46 +1351,70 @@
     const entries = reportEntries();
     const byStudent=monthAttendance().reduce((map,entry)=>{ const student=getStudent(entry.studentId); const key=student?.id||entry.studentId; if(!map.has(key))map.set(key,{name:student?.name||"Alumno eliminado",code:student?.code||"",count:0}); map.get(key).count+=1; return map; },new Map());
     const ranking=[...byStudent.values()].sort((a,b)=>b.count-a.count).slice(0,8);
+    const maxCount=ranking.length?ranking[0].count:1;
     const q=reportsSearch.trim();
     const bitacoraTitulo = q ? `Historial completo de ${escapeHtml(entries.length ? (getStudent(entries[0].studentId)?.name||"este alumno") : "ese alumno")}` : "Bitacora";
     const bitacoraSub = q ? `${entries.length} clase${entries.length===1?"":"s"} registrada${entries.length===1?"":"s"} en total, desde el primer dia.` : "Registro cronologico del mes operativo.";
-    return `${renderHeader("Reportes de "+monthLabel(state.currentMonth),"Asistencia registrada, consumo de clases y exportacion de datos.")}<section class="panel" style="margin-bottom:16px"><div class="panel-header"><div><h3>Balance de planes</h3><p>Cuantos planes se vendieron o renovaron este mes, y cuantos tienes activos ahora mismo, por tipo.</p></div></div>${renderPlanSalesPanel()}</section><section class="grid cols-2"><div class="panel"><div class="panel-header"><div><h3>Resumen por alumno</h3><p>Alumnos con mas clases en el mes.</p></div></div>${ranking.length?ranking.map(row=>`<div class="report-row"><strong>${escapeHtml(row.code||"Sin codigo")}</strong><span>${escapeHtml(row.name)}</span><span class="badge info">${row.count} clase${row.count===1?"":"s"}</span></div>`).join(""):'<div class="empty">No hay asistencia en este mes.</div>'}</div><div class="panel"><div class="panel-header"><div><h3>${bitacoraTitulo}</h3><p>${bitacoraSub}</p></div><button class="btn" type="button" data-action="export-csv">${icon("download")}CSV asistencia</button></div><div class="toolbar" style="margin-bottom:12px"><input class="search" type="search" data-filter="reports-search" placeholder="Buscar alumno por nombre, codigo o telefono para ver su historial completo..." value="${escapeHtml(reportsSearch)}"></div>${renderAttendanceTable(entries)}</div></section>`;
+    return `${renderHeader("Reportes de "+monthLabel(state.currentMonth),"Asistencia registrada, consumo de clases y exportacion de datos.")}
+      <section class="panel" style="margin-bottom:16px">${panelHead("Balance de planes","Cuantos planes se vendieron o renovaron este mes, y cuantos tienes activos ahora mismo, por tipo.","chart")}${renderPlanSalesPanel()}</section>
+      <section class="grid cols-2 reports-grid">
+        <div class="panel">${panelHead("Top asistencia","Alumnos con mas clases en el mes.","trophy","warn")}${ranking.length?ranking.map((row,i)=>`<div class="report-row"><span class="rank">${i+1}</span><div class="rank-body"><strong>${escapeHtml(row.name)}</strong><small>${escapeHtml(row.code||"Sin codigo")}</small><div class="bar"><i style="width:${row.count/maxCount*100}%"></i></div></div><span class="badge info">${row.count} clase${row.count===1?"":"s"}</span></div>`).join(""):'<div class="empty">No hay asistencia en este mes.</div>'}</div>
+        <div class="panel">${panelHead(bitacoraTitulo,bitacoraSub,"activity","",`<button class="btn" type="button" data-action="export-csv">${icon("download")}CSV asistencia</button>`)}<div class="toolbar filter-bar">${searchBox('data-filter="reports-search"',"Buscar alumno para ver su historial completo…",reportsSearch)}</div><div class="scroll-area">${renderAttendanceTable(entries)}</div></div>
+      </section>`;
   }
   function renderAttendanceTable(entries){
     if(!entries.length) return '<div class="empty">Aun no hay clases registradas.</div>';
-    return `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Alumno</th><th>Origen</th><th>Tipo</th></tr></thead><tbody>${entries.map(entry=>{ const student=getStudent(entry.studentId); return `<tr><td>${escapeHtml(formatDateTime(entry.at))}</td><td><div class="student-name"><strong>${escapeHtml(student?.name||"Alumno no encontrado")}</strong><small>${escapeHtml(student?.code||entry.studentId)}</small></div></td><td>${(entry.source==="qr"||entry.source==="qr-url")?"QR":"Manual"}</td><td>${entry.extra?'<span class="badge warn">Extra</span>':'<span class="badge ok">Plan</span>'}</td><td><button class='btn icon danger' title='Anular' type='button' data-action='delete-attendance' data-att-id='${entry.id}'>${icon('x')}</button></td></tr>`; }).join("")}</tbody></table></div>`;
+    return `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Alumno</th><th>Origen</th><th>Tipo</th><th><span class="sr-only">Anular</span></th></tr></thead><tbody>${entries.map(entry=>{ const student=getStudent(entry.studentId); const name=student?.name||"Alumno no encontrado"; const isQr=(entry.source==="qr"||entry.source==="qr-url"); return `<tr><td class="date-cell" style="color:var(--ink-2)">${escapeHtml(formatDateTime(entry.at))}</td><td><div class="student-name">${avatar(name,"sm")}<div><strong>${escapeHtml(name)}</strong><small>${escapeHtml(student?.code||entry.studentId)}</small></div></div></td><td><span class="chip">${icon(isQr?"scan":"edit")}${isQr?"QR":"Manual"}</span></td><td>${entry.extra?'<span class="badge warn">Extra</span>':'<span class="badge ok">Plan</span>'}</td><td class="actions"><button class='btn icon danger' title='Anular' aria-label='Anular registro' type='button' data-action='delete-attendance' data-att-id='${entry.id}'>${icon('x')}</button></td></tr>`; }).join("")}</tbody></table></div>`;
   }
 
   /* AJUSTES (sin campo de nombre de empresa) */
   function renderSettings(){
     if(!settingsUnlocked){
       return `${renderHeader("Ajustes","Ingresa la contrasena para acceder a esta seccion.")}
-        <section class="panel" style="max-width:400px;margin:0 auto">
-          <div class="panel-header"><div><h3>Acceso restringido</h3><p>Los ajustes requieren verificacion adicional.</p></div></div>
-          <form id="settingsAuthForm" style="padding:8px 0;display:grid;gap:14px">
-            <label class="field">Contrasena de administrador<input name="settingsPass" type="password" autocomplete="current-password" placeholder="..." autofocus></label>
-            <button class="btn primary" type="submit" style="justify-content:center">${icon("lock")} Verificar acceso</button>
+        <section class="panel" style="max-width:420px;margin:0 auto">
+          ${panelHead("Acceso restringido","Los ajustes requieren verificacion adicional.","lock")}
+          <form id="settingsAuthForm" style="display:grid;gap:14px">
+            <label class="field">Contrasena de administrador<input name="settingsPass" type="password" autocomplete="current-password" placeholder="••••••••" autofocus></label>
+            <button class="btn primary lg" type="submit">${icon("lock")}Verificar acceso</button>
           </form>
         </section>`;
     }
     const lastBackup=localStorage.getItem("acquacontrol.lastBackup");
-    const lastBackupHtml=lastBackup?`<p style="font-size:.78rem;color:var(--success);margin-top:8px">Ultimo respaldo descargado: ${escapeHtml(new Intl.DateTimeFormat("es-CO",{dateStyle:"medium",timeStyle:"short"}).format(new Date(lastBackup)))}</p>`:`<p style="font-size:.78rem;color:var(--muted);margin-top:8px">Aun no has descargado ningun respaldo desde este dispositivo.</p>`;
-    return `${renderHeader("Ajustes","Respaldos y utilidades de operacion.")}<section class="settings-grid"><div class="panel"><div class="panel-header"><div><h3>Mes operativo</h3><p>Cambia el mes activo para el control de clases.</p></div></div><form id="settingsForm" class="field-grid"><label class="field wide">Mes operativo<input name="currentMonth" type="month" value="${escapeHtml(state.currentMonth)}"></label><div class="split-actions wide"><button class="btn primary" type="submit">${icon("save")}Guardar mes</button></div></form></div><div class="panel"><div class="panel-header"><div><h3>Respaldo completo del sistema</h3><p>Descarga o restaura TODA la informacion: alumnos, planes, clases usadas, pagos, firmas de exoneracion, asistencia y eventos.</p></div></div><div class="toolbar"><button class="btn primary" type="button" data-action="export-json">${icon("download")}Descargar respaldo (Excel)</button><button class="btn" type="button" data-action="trigger-import">${icon("upload")}Restaurar desde respaldo</button><input class="file-input" id="importFile" type="file" accept=".xlsx,.json,application/json"></div>${lastBackupHtml}<p style="font-size:.78rem;color:var(--muted);margin-top:4px">Recomendacion: descarga un respaldo con frecuencia (por ejemplo cada semana) y guardalo en un lugar seguro (correo, Google Drive, USB). Si algun dia se pierden los datos de los alumnos, usa "Restaurar desde respaldo" con el ultimo archivo descargado para dejar la app exactamente como estaba en ese momento.</p><div class="toolbar" style="margin-top:14px"><button class="btn danger" type="button" data-action="clear-data">${icon("trash")}Borrar datos</button></div></div></section>${renderWaiverEditor()}`;
+    const lastBackupHtml=lastBackup?`<p class="note ok">${icon("check")} Ultimo respaldo descargado: ${escapeHtml(new Intl.DateTimeFormat("es-CO",{dateStyle:"medium",timeStyle:"short"}).format(new Date(lastBackup)))}</p>`:`<p class="note">Aun no has descargado ningun respaldo desde este dispositivo.</p>`;
+    return `${renderHeader("Ajustes","Respaldos y utilidades de operacion.")}<section class="settings-grid"><div class="panel">${panelHead("Mes operativo","Cambia el mes activo para el control de clases.","calendar")}<form id="settingsForm" class="field-grid"><label class="field wide">Mes operativo<input name="currentMonth" type="month" value="${escapeHtml(state.currentMonth)}"></label><div class="split-actions wide"><button class="btn primary" type="submit">${icon("save")}Guardar mes</button></div></form></div><div class="panel">${panelHead("Respaldo completo del sistema","Descarga o restaura TODA la informacion: alumnos, planes, clases usadas, pagos, firmas, asistencia y eventos.","shield","ok")}<div class="toolbar"><button class="btn primary" type="button" data-action="export-json">${icon("download")}Descargar respaldo (Excel)</button><button class="btn outline" type="button" data-action="trigger-import">${icon("upload")}Restaurar desde respaldo</button><input class="file-input" id="importFile" type="file" accept=".xlsx,.json,application/json"></div>${lastBackupHtml}<div class="callout" style="margin-top:12px">${icon("info")}<span>Descarga un respaldo con frecuencia (por ejemplo cada semana) y guardalo en un lugar seguro (correo, Google Drive, USB). Si algun dia se pierden los datos, usa "Restaurar desde respaldo" con el ultimo archivo para dejar la app exactamente como estaba.</span></div><div class="panel-divider" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:.82rem;color:var(--muted)">Zona de peligro: borra la informacion de este navegador.</span><button class="btn danger" type="button" data-action="clear-data">${icon("trash")}Borrar datos</button></div></div></section>${renderWaiverEditor()}`;
   }
 
   /* MODAL DE LOGIN */
   function renderLoginModal(){
-    return `<div class="modal-backdrop" role="dialog" aria-modal="true" id="loginModal" style="z-index:10000"><div class="modal-panel" style="max-width:380px"><div class="modal-header"><div><img class="modal-logo" src="assets/logo-acqua-blanco.png" alt="ACQUA NATACION"><span class="eyebrow">Area administrativa</span><h3>Acceso al control</h3></div></div><form id="loginForm" style="padding:24px;display:grid;gap:14px"><div style="background:rgba(255,255,255,.08);border-radius:10px;padding:10px 14px;font-size:.82rem;color:rgba(255,255,255,.8);text-align:center">Acceso exclusivo para administradores</div><label class="field">Contrasena<input name="password" type="password" autocomplete="current-password" placeholder="Contrasena de administrador" autofocus></label><button id="btnLogin" class="btn primary" type="submit" style="width:100%;justify-content:center;margin-top:4px;min-height:46px">${icon("lock")} Ingresar</button></form></div></div><style>@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}</style>`;
+    return `<div class="modal-backdrop" role="dialog" aria-modal="true" aria-label="Acceso administrativo" id="loginModal" style="z-index:10000;align-items:center"><div class="login-card"><img class="login-logo" src="assets/logo-acqua-blanco.png" alt="ACQUA NATACION"><div class="modal-panel"><span class="eyebrow" style="color:var(--primary);opacity:1">Area administrativa</span><h3>Acceso al control</h3><p class="login-sub">Acceso exclusivo para administradores.</p><form id="loginForm" style="display:grid;gap:14px"><label class="field">Contrasena<input name="password" type="password" autocomplete="current-password" placeholder="Contrasena de administrador" autofocus></label><button id="btnLogin" class="btn primary lg block" type="submit">${icon("lock")} Ingresar</button></form></div><p class="login-foot">ACQUA NATACION · DESDE 2015 · CHIA</p></div></div><style>@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}</style>`;
   }
 
   /* MODAL DE RENOVACION */
   function renderRenewalModal(){
     const student=getStudent(renewModalStudentId);
     if(!student) return "";
-    const planBtns=Object.entries(PLAN_LABELS).map(([value,label])=>`<button class="renewal-plan-btn ${value===student.planType?"current":""}" data-action="confirm-renewal-plan" data-plan="${escapeHtml(value)}"><span>${escapeHtml(label)}</span>${value===student.planType?'<span class="renewal-plan-current-badge">actual</span>':""}</button>`).join("");
-    const riesgoHtml=(()=>{ const r=remainingClasses(student); const b=Number(student.bonusClasses||0); if(r<=0&&b<=0) return ""; return `<div style="background:var(--danger-tint);border:1px solid var(--danger);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:.8rem;color:#c0392b"><strong>Ojo:</strong> este alumno tiene ${r} clase(s) sin usar${b>0?` (${b} son de regalo/bonus)`:""}. "Mismo plan", "Plan diferente" y "Clase individual" reinician su plan a cero y las borran. Si quieres sumar o quitar clases al TOTAL sin perder lo que ya tiene, o corregir cuantas ya vio, usa las opciones de mas abajo.</div>`; })();
-    return `<div class="modal-backdrop" role="dialog" aria-modal="true" style="z-index:9998"><div class="modal-panel" style="max-width:460px"><div class="modal-header"><div><span class="eyebrow">Renovacion mensual</span><h3>${escapeHtml(student.name)}</h3></div><button class="btn icon" type="button" data-action="close-renewal-modal" style="color:rgba(255,255,255,.7)">${icon("x")}</button></div><div style="padding:20px">${renewModalChangePlan?`<p style="margin:0 0 14px;color:var(--muted);font-size:.88rem">Selecciona el nuevo plan:</p><div style="display:grid;gap:8px">${planBtns}</div><div class="split-actions"><button class="btn ghost" data-action="renewal-back-options">Volver</button></div>`:`<p style="margin:0 0 18px;color:var(--muted);font-size:.88rem">Plan actual: <strong>${escapeHtml(PLAN_LABELS[student.planType]||"Personalizado")}</strong> - Mes: <strong>${escapeHtml(monthLabel(state.currentMonth))}</strong></p>${riesgoHtml}<div style="display:grid;gap:10px"><button class="renewal-opt-btn success" data-action="confirm-renewal-same"><span class="renewal-opt-icon">+</span><span><strong>Mismo plan</strong><small>${escapeHtml(PLAN_LABELS[student.planType]||"Personalizado")} - sin cambios</small></span></button><button class="renewal-opt-btn" data-action="show-renewal-change-plan"><span class="renewal-opt-icon">~</span><span><strong>Plan diferente</strong><small>Elige otro plan para este mes</small></span></button><button class="renewal-opt-btn accent" data-action="confirm-renewal-individual"><span class="renewal-opt-icon">1</span><span><strong>Clase individual</strong><small>Solo 1 clase - practica suelta</small></span></button>
-                <button class="renewal-opt-btn" style="border-color:#34c759;background:rgba(52,199,89,.06)" data-action="add-one-class"><span class="renewal-opt-icon" style="color:#34c759">🎁</span><span><strong>Regalar 1 clase (Sumar al plan)</strong><small>Usa ESTE boton para regalar clases. Sube el total, nunca toca lo ya visto.</small></span></button><button class="renewal-opt-btn" style="border-color:#FF6B00;background:rgba(255,107,0,.06)" data-action="remove-one-class"><span class="renewal-opt-icon" style="color:#FF6B00">-1</span><span><strong>Quitar 1 clase al plan</strong><small>Reduce el TOTAL del plan (ej. deshacer un regalo). No toca lo ya visto.</small></span></button><button class="renewal-opt-btn" style="border-color:#6366f1;background:rgba(99,102,241,.06)" data-action="adjust-total-classes"><span class="renewal-opt-icon" style="color:#6366f1">✎</span><span><strong>Ajustar clases totales manualmente</strong><small>NO es para regalar clases: recalcula las usadas para mantener fijo lo que le falta por ver.</small></span></button><button class="renewal-opt-btn" style="border-color:#0891b2;background:rgba(8,145,178,.06)" data-action="adjust-used-classes"><span class="renewal-opt-icon" style="color:#0891b2">👁</span><span><strong>Corregir cuantas clases ya vio</strong><small>Usa esto si el historial real no coincide (clase sin registrar o registrada de mas)</small></span></button></div><div class="split-actions"><button class="btn ghost" data-action="close-renewal-modal">Cancelar</button></div>`}</div></div></div><style>.renewal-opt-btn{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;background:var(--bg);border:2px solid var(--line-opaque);border-radius:var(--radius-sm);text-align:left;cursor:pointer;transition:all .18s;font:inherit}.renewal-opt-btn:hover{border-color:var(--primary);background:var(--primary-tint);transform:translateY(-1px)}.renewal-opt-btn.success{border-color:var(--success);background:var(--success-tint)}.renewal-opt-btn.accent{border-color:var(--accent);background:rgba(255,159,10,.08)}.renewal-opt-icon{font-size:1.3rem;min-width:2rem;text-align:center;font-weight:700;color:var(--primary)}.renewal-opt-btn strong{display:block;font-size:.92rem;font-weight:600;color:var(--ink)}.renewal-opt-btn small{display:block;color:var(--muted);font-size:.78rem;margin-top:2px}.renewal-plan-btn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:12px 14px;background:var(--bg);border:1.5px solid var(--line-opaque);border-radius:var(--radius-sm);text-align:left;cursor:pointer;font:inherit;transition:all .15s}.renewal-plan-btn:hover,.renewal-plan-btn.current{border-color:var(--primary);background:var(--primary-tint)}.renewal-plan-current-badge{font-size:.68rem;font-weight:700;background:var(--primary-tint);color:var(--primary);padding:2px 8px;border-radius:999px;border:1px solid rgba(0,119,182,.2)}</style>`;
+    const planBtns=Object.entries(PLAN_LABELS).filter(([value])=>value!=="anual"||student.planType==="anual").map(([value,label])=>`<button class="renewal-plan-btn ${value===student.planType?"current":""}" data-action="confirm-renewal-plan" data-plan="${escapeHtml(value)}"><span>${escapeHtml(label)}</span>${value===student.planType?'<span class="renewal-plan-current-badge">actual</span>':""}</button>`).join("");
+    const riesgoHtml=(()=>{ const r=remainingClasses(student); const b=Number(student.bonusClasses||0); if(r<=0&&b<=0) return ""; return `<div class="callout danger" style="margin-bottom:14px;font-size:.8rem">${icon("alert")}<span><strong>Ojo:</strong> este alumno tiene ${r} clase(s) sin usar${b>0?` (${b} son de regalo/bonus)`:""}. "Mismo plan", "Plan diferente" y "Clase individual" reinician su plan a cero y las borran. Si quieres sumar o quitar clases al TOTAL sin perder lo que ya tiene, o corregir cuantas ya vio, usa las opciones de ajuste.</span></div>`; })();
+    const planActual=escapeHtml(PLAN_LABELS[student.planType]||"Personalizado");
+    const opt=(cls,action,ic,title,sub)=>`<button class="renewal-opt-btn ${cls}" data-action="${action}"><span class="renewal-opt-icon">${icon(ic)}</span><span><strong>${title}</strong><small>${sub}</small></span></button>`;
+    const body=renewModalChangePlan
+      ? `<p style="margin:0 0 14px;color:var(--muted);font-size:.88rem">Selecciona el nuevo plan:</p><div class="plan-pick-grid">${planBtns}</div><div class="split-actions"><button class="btn ghost" data-action="renewal-back-options">${icon("arrowLeft")}Volver</button></div>`
+      : `<div class="renew-meta"><span>Plan actual: <strong>${planActual}</strong></span><span>Mes: <strong>${escapeHtml(monthLabel(state.currentMonth))}</strong></span><span>Restantes: <strong>${remainingClasses(student)} de ${planTotal(student)}</strong></span></div>${riesgoHtml}
+         <div class="renew-group" style="margin-top:0">Renovar plan</div>
+         <div style="display:grid;gap:8px">
+           ${opt("success","confirm-renewal-same","refresh","Mismo plan",planActual+" · sin cambios")}
+           ${opt("","show-renewal-change-plan","shuffle","Plan diferente","Elige otro plan para este mes")}
+           ${opt("accent","confirm-renewal-individual","user","Clase individual","Solo 1 clase · practica suelta")}
+         </div>
+         <div class="renew-group">Ajustar sin reiniciar</div>
+         <div style="display:grid;gap:8px">
+           ${opt("gift","add-one-class","gift","Regalar 1 clase (sumar al plan)","Usa ESTE boton para regalar clases. Sube el total, nunca toca lo ya visto.")}
+           ${opt("minus","remove-one-class","minus","Quitar 1 clase al plan","Reduce el TOTAL del plan (ej. deshacer un regalo). No toca lo ya visto.")}
+           ${opt("tool","adjust-total-classes","sliders","Ajustar clases totales manualmente","NO es para regalar clases: recalcula las usadas para mantener fijo lo que le falta por ver.")}
+           ${opt("eye","adjust-used-classes","eye","Corregir cuantas clases ya vio","Usa esto si el historial real no coincide (clase sin registrar o registrada de mas)")}
+         </div>
+         <div class="split-actions"><button class="btn ghost" data-action="close-renewal-modal">Cancelar</button></div>`;
+    return `<div class="modal-backdrop" role="dialog" aria-modal="true" aria-label="Renovacion" style="z-index:9998"><div class="modal-panel" style="max-width:520px"><div class="modal-header"><div style="display:flex;gap:14px;align-items:center">${avatar(student.name)}<div><span class="eyebrow">Renovacion mensual</span><h3>${escapeHtml(student.name)}</h3></div></div><button class="btn icon" type="button" aria-label="Cerrar" data-action="close-renewal-modal">${icon("x")}</button></div><div class="modal-body">${body}</div></div></div>`;
   }
 
   /* OVERLAY DE CHECK-IN (escaneo exitoso) */
@@ -1200,8 +1446,11 @@
     student.updatedAt=new Date().toISOString();
     // El plan inicia a contar desde la primera clase tomada, sin importar si
     // tiene nivel u otros datos opcionales asignados.
-    if(!student.planStartedAt){
-      student.planStartedAt=new Date().toISOString();
+    let arrancaHoy=false;
+    if(!student.planStartedAt||inicioEsDeRenovacion(student)){
+      const ini=inicioPlan(student);
+      arrancaHoy=!ini;
+      student.planStartedAt=(ini||new Date()).toISOString();
     }
     state.attendance.push({ id:uid("attendance"), studentId:student.id, at:new Date().toISOString(), monthKey:state.currentMonth, source, extra });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -1222,56 +1471,44 @@
     const vencidoHoy=planVencido(student);
     const vencDate=calcularVencimiento(student);
     const diasParaVencerCk=vencDate?Math.ceil((vencDate-new Date())/(1000*60*60*24)):null;
-    const vencColor=vencidoHoy?"var(--danger)":(diasParaVencerCk!==null&&diasParaVencerCk<=5)?"var(--warning)":"var(--ink)";
-    const vencText=vencDate?new Intl.DateTimeFormat("es-CO",{day:"2-digit",month:"long",year:"numeric"}).format(vencDate):"Sin definir";
+    const vencColor=vencidoHoy?"var(--danger-ink)":(diasParaVencerCk!==null&&diasParaVencerCk<=5)?"var(--accent-dark)":"var(--ink)";
+    const vencText=vencDate?new Intl.DateTimeFormat("es-CO",{day:"2-digit",month:"short",year:"numeric"}).format(vencDate):"Sin definir";
     let extraHtml="";
     if(vencidoHoy) extraHtml='<div class="checkin-warning danger">El plan de este alumno ya vencio por fecha — esta clase se registra fuera del periodo del plan.</div>';
-    if(!guardadoOk) extraHtml+='<div class="checkin-warning danger">⚠️ No se pudo confirmar en la nube (revisa la conexion). Se reintentara automaticamente — no cierres la app hasta que el punto de arriba vuelva a verde.</div>';
+    if(!guardadoOk) extraHtml+='<div class="checkin-warning danger">No se pudo confirmar en la nube (revisa la conexion). Se reintentara automaticamente — no cierres la app hasta que el indicador vuelva a verde.</div>';
     const avisarBtnHtml=(student.phone&&remainingNow<=1)
-      ? `<button class="btn" type="button" data-action="notify-student" data-id="${escapeHtml(student.id)}" style="width:100%;justify-content:center;background:#25D366;color:#fff;margin-bottom:8px">📲 Avisar por WhatsApp que le quedan pocas clases</button>`
+      ? `<button class="btn wa block" type="button" data-action="notify-student" data-id="${escapeHtml(student.id)}" style="margin-bottom:4px">${icon("message")}Avisar por WhatsApp que le quedan pocas clases</button>`
       : "";
+    const C=2*Math.PI*52, frac=totalNow?Math.max(0,Math.min(1,remainingNow/totalNow)):0;
 
     const overlay=document.createElement("div");
     overlay.id="checkin-overlay";
     overlay.innerHTML=`
-      <div class="checkin-modal">
-        <div class="checkin-check">&#10003;</div>
-        <h2 class="checkin-name">${escapeHtml(student.name)}</h2>
-        <p class="checkin-code">${escapeHtml(student.code)}</p>
-        <div class="checkin-clases-hoy">
-          <span>Clase ${clasesHoy === 1 ? "1 registrada hoy" : clasesHoy+" registradas hoy"}</span>
+      <div class="checkin-modal" role="alertdialog" aria-label="Clase registrada">
+        <div class="checkin-top">
+          <div class="checkin-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
+          <h2 class="checkin-name">${escapeHtml(student.name)}</h2>
+          <p class="checkin-code">${escapeHtml(student.code)} · CLASE REGISTRADA</p>
+          <svg class="wave" viewBox="0 0 400 34" preserveAspectRatio="none"><path d="M0 18 C70 2 130 34 200 18 S330 2 400 18 V34 H0Z" fill="#fff"/></svg>
         </div>
-        <div class="checkin-stat">
-          <span>Clases restantes en el plan</span>
-          <strong style="color:${remainColor}">${remainingNow<=0?"0":remainingNow}</strong>
+        <div class="checkin-body">
+          <div class="checkin-ring">
+            <svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="52"/><circle class="val" cx="60" cy="60" r="52" stroke="${remainColor}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}" data-target="${(C*(1-frac)).toFixed(1)}"/></svg>
+            <div><b style="color:${remainColor}">${remainingNow<=0?"0":remainingNow}</b><small>restantes</small></div>
+          </div>
+          <div class="checkin-clases-hoy">${icon("check")}${clasesHoy === 1 ? "1 clase registrada hoy" : clasesHoy+" clases registradas hoy"}</div>
+          <div class="checkin-stats">
+            <div class="checkin-stat">Usadas del plan<strong>${usedNow} <span style="font-weight:600;color:var(--muted)">de ${totalNow}</span></strong></div>
+            <div class="checkin-stat">Su plan vence<strong style="color:${vencColor}">${vencText}</strong></div>
+          </div>
+          ${arrancaHoy?`<div class="callout ok" style="margin-bottom:10px;text-align:left;font-size:.8rem">${icon("play")}<span><strong>Hoy empieza su plan.</strong> Tiene ${textoVigencia(student.planType)} desde hoy, hasta el ${vencText}.</span></div>`:""}
+          ${extraHtml}
+          ${avisarBtnHtml}
         </div>
-        <div class="checkin-stat">
-          <span>Clases ya usadas del plan</span>
-          <strong style="color:var(--ink);font-size:1.3rem">${usedNow} <span style="font-size:.9rem;font-weight:600;color:var(--muted)">de ${totalNow}</span></strong>
-        </div>
-        <div class="checkin-stat">
-          <span>Su plan vence el</span>
-          <strong style="color:${vencColor};font-size:.95rem">${vencText}</strong>
-        </div>
-        ${extraHtml}
-        ${avisarBtnHtml}
-        <p class="checkin-auto">Este mensaje se cerrara solo...</p>
-      </div>
-      <style>
-        #checkin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
-        .checkin-modal{background:#fff;border-radius:24px;padding:2rem 1.5rem;max-width:340px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.3);animation:popIn .25s cubic-bezier(.34,1.56,.64,1)}
-        @keyframes popIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
-        .checkin-check{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#34c759,#30b550);color:#fff;font-size:2.4rem;line-height:72px;margin:0 auto 1rem;box-shadow:0 4px 16px rgba(52,199,89,.4)}
-        .checkin-name{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;margin:0 0 4px;color:var(--ink)}
-        .checkin-code{font-size:.78rem;color:var(--muted);margin:0 0 1rem}
-        .checkin-clases-hoy{background:linear-gradient(135deg,var(--primary-deep),var(--primary));color:#fff;border-radius:12px;padding:10px 16px;margin-bottom:12px;font-size:.92rem;font-weight:700;letter-spacing:.01em}
-        .checkin-stat{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:12px;padding:10px 16px;margin-bottom:10px;font-size:.88rem}
-        .checkin-stat strong{font-size:1.5rem;font-weight:800}
-        .checkin-warning{background:var(--surface-warm);border:1px solid var(--accent);border-radius:10px;padding:8px 12px;font-size:.78rem;color:#92400e;margin-bottom:8px;text-align:left}
-        .checkin-warning.danger{background:var(--danger-tint);border-color:var(--danger);color:#c0392b}
-        .checkin-auto{font-size:.72rem;color:var(--muted);margin:12px 0 0}
-      </style>`;
+        <div class="checkin-auto" title="Se cierra solo"><i></i></div>
+      </div>`;
     document.body.appendChild(overlay);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ const v=overlay.querySelector(".checkin-ring .val"); if(v) v.style.strokeDashoffset=v.dataset.target; }));
 
     // Cerrar automaticamente tras 2.8s y reactivar camara
     const closeTimer=setTimeout(()=>{
@@ -1303,26 +1540,22 @@
     const overlay=document.createElement("div");
     overlay.id="checkin-blocked-overlay";
     overlay.innerHTML=`
-      <div class="checkin-modal blocked">
-        <div class="checkin-block-icon">&#10005;</div>
-        <h2 class="checkin-name">${escapeHtml(student.name)}</h2>
-        <p class="checkin-code">${escapeHtml(student.code)}</p>
-        <div class="checkin-warning danger" style="text-align:center;font-weight:700;margin-bottom:4px">
-          Sin clases disponibles (0 de ${total}). No se registro el ingreso.
+      <div class="checkin-modal blocked" role="alertdialog" aria-label="Sin clases disponibles">
+        <div class="checkin-top is-blocked">
+          <div class="checkin-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 7 7 17"/></svg></div>
+          <h2 class="checkin-name">${escapeHtml(student.name)}</h2>
+          <p class="checkin-code">${escapeHtml(student.code)} · INGRESO NO REGISTRADO</p>
+          <svg class="wave" viewBox="0 0 400 34" preserveAspectRatio="none"><path d="M0 18 C70 2 130 34 200 18 S330 2 400 18 V34 H0Z" fill="#fff"/></svg>
         </div>
-        <p style="font-size:.82rem;color:var(--muted);text-align:center;margin:0 0 16px">
-          Este alumno no puede tomar el servicio hasta que confirmes el pago y renueves su plan.
-        </p>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <button class="btn primary" type="button" data-action="renew-from-block" data-id="${escapeHtml(student.id)}" style="justify-content:center;min-height:46px">${icon("refresh")} Renovar ahora</button>
-          <button class="btn ghost" type="button" data-action="close-blocked-checkin" style="justify-content:center">Cerrar</button>
+        <div class="checkin-body" style="margin-top:6px">
+          <div class="checkin-warning danger" style="text-align:center;font-weight:700;font-size:.88rem">Sin clases disponibles (0 de ${total}).</div>
+          <p style="font-size:.84rem;color:var(--muted);text-align:center;margin:4px 0 16px">Este alumno no puede tomar el servicio hasta que confirmes el pago y renueves su plan.</p>
         </div>
-      </div>
-      <style>
-        #checkin-blocked-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
-        .checkin-modal.blocked{background:#fff;border-radius:24px;padding:2rem 1.5rem;max-width:340px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.3);animation:popIn .25s cubic-bezier(.34,1.56,.64,1)}
-        .checkin-block-icon{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--danger),#c0392b);color:#fff;font-size:2.2rem;line-height:72px;margin:0 auto 1rem;box-shadow:0 4px 16px rgba(255,59,48,.4)}
-      </style>`;
+        <div class="checkin-actions">
+          <button class="btn primary lg" type="button" data-action="renew-from-block" data-id="${escapeHtml(student.id)}">${icon("refresh")} Renovar ahora</button>
+          <button class="btn ghost" type="button" data-action="close-blocked-checkin">Cerrar</button>
+        </div>
+      </div>`;
     document.body.appendChild(overlay);
   }
 
@@ -1336,10 +1569,11 @@
     if(!student) return "";
     const pagos=(student.payments||[]).slice().reverse();
     const total=pagos.reduce((s,p)=>s+Number(p.valor||0),0);
-    return `<div class="modal-backdrop" role="dialog" aria-modal="true" id="payModal" style="z-index:9997;overflow-y:auto"><div class="modal-panel" style="max-width:520px;margin:2rem auto"><div class="modal-header"><div><span class="eyebrow">Historial de pagos</span><h3>${escapeHtml(student.name)}</h3></div><button class="btn icon" type="button" data-action="close-pay-modal" style="color:rgba(255,255,255,.7)">${icon("x")}</button></div><div style="padding:16px 20px">
-      <form id="payForm" class="field-grid" style="background:var(--bg);border-radius:12px;padding:14px;margin-bottom:16px">
+    const cop=v=>new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0}).format(Number(v||0));
+    return `<div class="modal-backdrop" role="dialog" aria-modal="true" aria-label="Pagos" id="payModal" style="z-index:9997"><div class="modal-panel" style="max-width:560px;margin:auto"><div class="modal-header"><div style="display:flex;gap:14px;align-items:center">${avatar(student.name)}<div><span class="eyebrow">Historial de pagos</span><h3>${escapeHtml(student.name)}</h3></div></div><button class="btn icon" type="button" aria-label="Cerrar" data-action="close-pay-modal">${icon("x")}</button></div><div class="modal-body">
+      <form id="payForm" class="field-grid" style="background:var(--surface-soft);border:1px solid var(--line-opaque);border-radius:16px;padding:16px;margin-bottom:18px">
         <input type="hidden" name="studentId" value="${escapeHtml(studentId)}">
-        <label class="field">Valor pagado (COP)<input name="valor" type="number" min="0" placeholder="Ej: 150000" required></label>
+        <label class="field">Valor pagado (COP)<input name="valor" type="number" min="0" inputmode="numeric" placeholder="Ej: 150000" required></label>
         <label class="field">Metodo de pago<select name="metodo">
           <optgroup label="Digital"><option>Nequi</option><option>Daviplata</option><option>Llave</option><option>PSE</option></optgroup>
           <optgroup label="Tarjeta"><option>Tarjeta debito</option><option>Tarjeta credito</option><option>Datafono</option></optgroup>
@@ -1351,9 +1585,9 @@
         <label class="field wide">Concepto (opcional)<input name="concepto" placeholder="Ej: Mensualidad mayo, Inscripcion..."></label>
         <div class="split-actions wide"><button class="btn primary" type="submit">${icon("dollar")}Registrar pago</button></div>
       </form>
-      ${pagos.length?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:6px">Total registrado: <strong style="color:var(--ink)">${new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0}).format(total)}</strong></div>
-      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Valor</th><th>Metodo</th><th>Concepto</th><th></th></tr></thead><tbody>
-        ${pagos.map((p,i)=>`<tr><td style="font-size:.78rem">${escapeHtml(p.fecha+(p.hora?" "+p.hora:""))}</td><td style="font-weight:600;color:var(--success)">${new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0}).format(Number(p.valor||0))}</td><td>${escapeHtml(p.metodo||"")}</td><td style="font-size:.78rem">${escapeHtml(p.concepto||"-")}</td><td><button class="btn icon danger" type="button" data-action="delete-payment" data-student-id="${escapeHtml(studentId)}" data-pay-idx="${pagos.length-1-i}">${icon("trash")}</button></td></tr>`).join("")}
+      ${pagos.length?`<div class="sum-strip" style="margin:0 0 12px"><div><span>Total registrado</span><strong class="num" style="color:var(--success-ink)">${cop(total)}</strong></div><div><span>Pagos</span><strong class="num">${pagos.length}</strong></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Valor</th><th>Metodo</th><th>Concepto</th><th><span class="sr-only">Eliminar</span></th></tr></thead><tbody>
+        ${pagos.map((p,i)=>`<tr><td class="date-cell">${escapeHtml(p.fecha+(p.hora?" "+p.hora:""))}</td><td class="num" style="font-weight:800;color:var(--success-ink)">${cop(p.valor)}</td><td>${escapeHtml(p.metodo||"")}</td><td style="font-size:.78rem">${escapeHtml(p.concepto||"-")}</td><td class="actions"><button class="btn icon danger" type="button" aria-label="Eliminar pago" data-action="delete-payment" data-student-id="${escapeHtml(studentId)}" data-pay-idx="${pagos.length-1-i}">${icon("trash")}</button></td></tr>`).join("")}
       </tbody></table></div>`:"<div class=\"empty\">Sin pagos registrados todavia.</div>"}
     </div></div></div>`;
   }
@@ -1409,12 +1643,12 @@
     const student=getStudent(studentId);
     if(!student) return "";
     const existingWaiver=student.waiver;
-    return `<div class="modal-backdrop" role="dialog" aria-modal="true" id="studentWaiverModal" style="z-index:9996;overflow-y:auto"><div class="modal-panel" style="max-width:520px;margin:2rem auto"><div class="modal-header"><div><img class="modal-logo" src="assets/logo-acqua-blanco.png" alt="ACQUA NATACION"><span class="eyebrow">Documento digital</span><h3>Firma de exoneracion</h3></div><button class="btn icon" type="button" data-action="close-student-waiver" style="color:rgba(255,255,255,.7)">${icon("x")}</button></div>
-      <div style="padding:16px 20px">
+    return `<div class="modal-backdrop" role="dialog" aria-modal="true" id="studentWaiverModal" style="z-index:9996"><div class="modal-panel" style="max-width:560px;margin:auto"><div class="modal-header"><div><img class="modal-logo" src="assets/logo-acqua-blanco.png" alt="ACQUA NATACION"><span class="eyebrow">Documento digital</span><h3>Firma de exoneracion</h3></div><button class="btn icon" type="button" aria-label="Cerrar" data-action="close-student-waiver">${icon("x")}</button></div>
+      <div class="modal-body">
         <div class="waiver-copy">
           <p><strong>Estudiante:</strong> ${escapeHtml(student.name)}<br><strong>Documento:</strong> ${escapeHtml(student.documento||"No registrado")}</p>
           <p style="font-weight:700;margin:10px 0 6px;font-size:.92rem">DECLARACIONES Y AUTORIZACION</p>
-          <ol style="padding-left:16px;margin:0;display:grid;gap:6px;font-size:.78rem;line-height:1.5">
+          <ol>
             <li><strong>Conocimiento del Riesgo:</strong> Declaro conocer las condiciones de la actividad de natacion, que incluye medio acuatico, y autorizo la participacion del estudiante bajo la supervision de ACQUA NATACION.</li>
             <li><strong>Estado de Salud:</strong> Certifico que el estudiante se encuentra en buen estado de salud. Me comprometo a informar al equipo cualquier novedad medica, alergia o condicion relevante que pueda afectar su participacion.</li>
             <li><strong>Supervision y Normas:</strong> Acepto que la actividad se realizara bajo supervision de los entrenadores de ACQUA NATACION, y me aseguro de que el estudiante acatara todas las instrucciones y normas de seguridad.</li>
@@ -1423,7 +1657,7 @@
             <li><strong>Uso de Imagen:</strong> Autorizo a ACQUA NATACION a tomar fotografias y/o videos del estudiante durante las clases y actividades, y a publicarlos en sus redes sociales y demas medios promocionales, sin que esto genere ninguna contraprestacion economica.</li>
           </ol>
         </div>
-        ${existingWaiver?`<div style="background:var(--success-tint);border:1px solid var(--success);border-radius:10px;padding:10px 14px;margin-top:12px;font-size:.82rem">Firmado por <strong>${escapeHtml(existingWaiver.name)}</strong> (${escapeHtml(existingWaiver.document)}) el ${escapeHtml(existingWaiver.signedAt)}</div>`:""}
+        ${existingWaiver?`<div class="callout ok" style="margin-top:12px">${icon("check")}<span>Firmado por <strong>${escapeHtml(existingWaiver.name)}</strong> (${escapeHtml(existingWaiver.document)}) el ${escapeHtml(existingWaiver.signedAt)}</span></div>`:""}
         ${!existingWaiver?`<form id="studentWaiverForm" class="field-grid" style="margin-top:14px">
           <input type="hidden" name="studentId" value="${escapeHtml(studentId)}">
           <label class="field wide consent"><input name="accepted" type="checkbox" required>Confirmo que lei y acepto los terminos de exoneracion y responsabilidad.</label>
@@ -1485,7 +1719,7 @@
     // Overlay de confirmacion - el botón recarga la vista limpia
     const overlayConf=document.createElement("div");
     overlayConf.id="confirm-overlay";
-    overlayConf.innerHTML=`<div style="position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px"><div style="background:#fff;border-radius:24px;padding:2rem 1.5rem;max-width:340px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.28)"><div style="width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,#34c759,#2da44e);color:#fff;font-size:2.2rem;line-height:68px;margin:0 auto 1rem">&#10003;</div><h2 style="font-size:1.25rem;font-weight:800;margin:0 0 6px;color:#0a2472">Alumno registrado</h2><p style="font-size:1rem;font-weight:700;color:#1565c0;margin:0 0 4px">${escapeHtml(name)}</p><p style="font-size:.88rem;color:#666;margin:0 0 1.4rem">Codigo asignado: <strong style="color:#0a2472">${escapeHtml(code)}</strong></p><button id="btnRegisterAnother" style="background:#0a2472;color:#fff;border:none;border-radius:12px;padding:12px 28px;font-size:.95rem;font-weight:700;cursor:pointer;width:100%">Registrar otro alumno</button></div></div>`;
+    overlayConf.innerHTML=`<div class="confirm-layer"><div class="checkin-modal"><div class="checkin-top"><div class="checkin-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div><h2 class="checkin-name">Alumno registrado</h2><p class="checkin-code">${escapeHtml(name)}</p><svg class="wave" viewBox="0 0 400 34" preserveAspectRatio="none"><path d="M0 18 C70 2 130 34 200 18 S330 2 400 18 V34 H0Z" fill="#fff"/></svg></div><div class="checkin-body" style="margin-top:8px"><p style="font-size:.9rem;color:var(--muted);margin:0 0 6px">Codigo de carnet asignado</p><p style="font-family:var(--font-display);font-size:2rem;font-weight:700;letter-spacing:.04em;color:var(--navy-900);margin:0 0 18px">${escapeHtml(code)}</p></div><div class="checkin-actions"><button id="btnRegisterAnother" class="btn primary lg" type="button">${icon("userPlus")}Registrar otro alumno</button></div></div></div>`;
     document.body.appendChild(overlayConf);
     document.getElementById("btnRegisterAnother").onclick=function(){
       document.getElementById("confirm-overlay")?.remove();
@@ -1508,14 +1742,12 @@
       if(dup2){ setToast("Ya existe un alumno con el nombre \""+dup2.name+"\" ("+dup2.code+"). Verifica antes de guardar."); return; }
     }
     const code = existing?.code || await nextStudentCodeFresh();
-    const student={ ...(existing||{}), id:existing?.id||uid("student"), code, name, category:String(fd.get("category")||"Infantil"), birthdate:String(fd.get("birthdate")||"").trim(), documento:String(fd.get("documento")||"").trim(), responsible:String(fd.get("responsible")||"").trim(), phoneAcudiente:String(fd.get("phoneAcudiente")||"").trim(), phone:String(fd.get("phone")||"").trim(), email:String(fd.get("email")||"").trim(),talla:String(fd.get("talla")||"").trim(),peso:String(fd.get("peso")||"").trim(),sangre:String(fd.get("sangre")||"").trim(),eps:String(fd.get("eps")||"").trim(),camiseta:String(fd.get("camiseta")||"").trim(),planType, customClasses:planType==="custom"?customClasses:"", status:String(fd.get("status")||"active"), nivel:String(fd.get("nivel")||""), talla:String(fd.get("talla")||"").trim(),peso:String(fd.get("peso")||"").trim(),sangre:String(fd.get("sangre")||"").trim(),eps:String(fd.get("eps")||"").trim(),camiseta:String(fd.get("camiseta")||"").trim(),notes:String(fd.get("notes")||"").trim(), monthKey:existing?.monthKey||state.currentMonth, classesUsed:Number(existing?.classesUsed||0),
+    const student={ ...(existing||{}), id:existing?.id||uid("student"), code, name, category:String(fd.get("category")||"Infantil"), birthdate:String(fd.get("birthdate")||"").trim(), documento:String(fd.get("documento")||"").trim(), responsible:String(fd.get("responsible")||"").trim(), phoneAcudiente:String(fd.get("phoneAcudiente")||"").trim(), phone:String(fd.get("phone")||"").trim(), email:String(fd.get("email")||"").trim(),talla:String(fd.get("talla")||"").trim(),peso:String(fd.get("peso")||"").trim(),sangre:String(fd.get("sangre")||"").trim(),eps:String(fd.get("eps")||"").trim(),camiseta:String(fd.get("camiseta")||"").trim(),planType, customClasses:planType==="custom"?customClasses:"", status:String(fd.get("status")||"active"), nivel:String(fd.get("nivel")||""), notes:String(fd.get("notes")||"").trim(), monthKey:existing?.monthKey||state.currentMonth, classesUsed:Number(existing?.classesUsed||0),
       // El plan NUNCA inicia solo por crear/editar el alumno: solo se toca si
       // el administrador escribe una fecha manual en "Fecha de inicio del plan"
       // (para corregir un dato); de lo contrario se respeta lo que ya tenia,
       // o queda vacio hasta que tome su primera clase.
-      planStartedAt: fd.has("planStartedAt") && String(fd.get("planStartedAt")||"").trim()
-        ? new Date(String(fd.get("planStartedAt"))+"T00:00:00").toISOString()
-        : (existing?.planStartedAt || null),
+      planStartedAt: (()=>{ const v=fd.has("planStartedAt")?String(fd.get("planStartedAt")||"").trim():""; if(!v) return existing?.planStartedAt||null; if(existing&&(v===localDateStr(existing.planStartedAt)||(()=>{ const ini=inicioPlan(existing); return ini&&v===localDateStr(ini.toISOString()); })())) return existing.planStartedAt||null; return new Date(v+"T00:00:00").toISOString(); })(),
       createdAt:existing?.createdAt||now, updatedAt:now };
     if(existing){ state.students=state.students.map(s=>s.id===existing.id?student:s); setToast("Alumno actualizado."); }
     else{ state.students.push(student); setToast(`Alumno creado con codigo ${student.code}.`); }
@@ -1529,7 +1761,7 @@
     const student=getStudent(studentId);
     if(!student) return;
     if(newPlanType) student.planType=newPlanType;
-    student.monthKey=state.currentMonth; student.classesUsed=0; student.bonusClasses=0; student.planStartedAt=new Date().toISOString();
+    student.monthKey=state.currentMonth; student.classesUsed=0; student.bonusClasses=0; student.planStartedAt=null; // el plan arranca con la primera clase
     student.lastRenewedAt=new Date().toISOString(); student.updatedAt=student.lastRenewedAt;
     if(!silent) setToast(`${student.name} renovado para ${monthLabel(state.currentMonth)}.`);
   }
@@ -1547,10 +1779,12 @@
     return window.confirm(msg);
   }
   function renewAllActive(){
-    const active=state.students.filter(s=>s.status==="active");
+    const anualesVigentes=state.students.filter(s=>s.status==="active"&&esPlanAnual(s)&&isRenewed(s)).length;
+    const active=state.students.filter(s=>s.status==="active"&&!(esPlanAnual(s)&&isRenewed(s)));
     if(!active.length){ setToast("No hay alumnos activos para renovar."); return; }
     const conDatos=active.filter(s=>remainingClasses(s)>0||Number(s.bonusClasses||0)>0);
     let msg=`Vas a renovar ${active.length} alumno(s) activos para ${monthLabel(state.currentMonth)}.\n\n`;
+    if(anualesVigentes) msg+=`Los ${anualesVigentes} alumno(s) con plan anual vigente NO se tocan: siguen descontando de las clases de su año.\n\n`;
     if(conDatos.length){
       msg+=`⚠️ ATENCION: ${conDatos.length} de ellos todavia tienen clases sin usar y/o clases de regalo sumadas, aunque su plan no haya vencido por fecha. Renovar se las va a BORRAR y a reiniciar su plan a cero.\n\n`;
       msg+=`Alumnos afectados: ${conDatos.slice(0,15).map(s=>s.name).join(", ")}${conDatos.length>15?` y ${conDatos.length-15} mas`:""}.\n\n`;
@@ -1593,7 +1827,7 @@
     const remaining=remainingClasses(student);
     let message=`Hola ${student.name}. Te escribimos de ${DEFAULT_BUSINESS}. `;
     if(remaining<=0) message+="Queremos recordarte que tu plan se ha culminado. Te esperamos para renovarlo y continuar con nosotros. Muchas gracias!";
-    else message+="Queremos recordarte que tu plan esta proximo a vencer. No olvides renovarlo a tiempo para seguir nadando.";
+    else { const v=calcularVencimiento(student); message+="Queremos recordarte que tu plan esta proximo a vencer"+(v?" (vence el "+new Intl.DateTimeFormat("es-CO",{day:"numeric",month:"long"}).format(v)+")":"")+". Recuerda que cada plan tiene "+textoVigencia(student.planType)+" de vigencia desde la primera clase. No olvides renovarlo a tiempo para seguir nadando."; }
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`,"_blank","noopener");
   }
   function notifyVencimiento(student){
@@ -1616,7 +1850,7 @@
     } else if(diasRestantes!==null && diasRestantes<=3){
       msg += "Tu plan vence en "+diasRestantes+" dia(s). Te invitamos a agendar pronto o comunicarte con nosotros para renovarlo.";
     } else {
-      msg += "Te recordamos que tu plan esta proximo a vencer. No olvides renovarlo a tiempo para seguir nadando.";
+      msg += "Te recordamos que tu plan vence"+(v?" el "+new Intl.DateTimeFormat("es-CO",{day:"numeric",month:"long"}).format(v):" pronto")+" y aun tienes "+r+" clase(s) por usar. Recuerda que cada plan tiene "+textoVigencia(student.planType)+" de vigencia desde la primera clase. No olvides renovarlo a tiempo para seguir nadando.";
     }
     window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(msg),"_blank","noopener");
   }
@@ -1697,7 +1931,7 @@
       const ph=document.querySelector("#scannerPlaceholder");
       if(ph){
         ph.hidden=false;
-        ph.innerHTML=`<div style="padding:20px;text-align:center"><div style="font-size:2.5rem;margin-bottom:8px">&#128247;</div><p style="color:var(--danger);font-weight:700;font-size:.9rem;margin:0 0 8px">No se pudo abrir la camara</p><p style="color:var(--muted);font-size:.78rem;margin:0 0 14px">${escapeHtml(msg)}</p><button class="btn primary" type="button" data-action="start-scanner">Intentar de nuevo</button></div>`;
+        ph.innerHTML=`<span class="icon-badge danger" style="width:60px;height:60px;border-radius:20px;background:rgba(229,72,77,.2);color:#FECACA">${icon("camera")}</span><p style="font-weight:800;color:#fff">No se pudo abrir la camara</p><p style="font-size:.82rem;color:rgba(255,255,255,.75)">${escapeHtml(msg)}</p><button class="btn primary" type="button" data-action="start-scanner" style="background:#fff;color:var(--navy-900)">${icon("refresh")}Intentar de nuevo</button>`;
       }
     }
   }
@@ -1772,12 +2006,172 @@
       body:JSON.stringify({id,contenido:text,updated_at:new Date().toISOString()})});
     if(!res.ok) throw new Error("http_"+res.status);
   }
+  function previewDocumento(){
+    const id=waiverEditId, esT=e=>e.tipo==="travesia";
+    const lista=state.events.filter(e=>id==="travesia"?esT(e):!esT(e)).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+    if(!lista.length){ setToast(id==="travesia"?"Crea un evento de tipo Travesia a nado para ver como queda este documento.":"Crea un evento (que no sea Travesia) para ver como queda este documento."); return; }
+    window.open("https://app-acqua.netlify.app/evento-acqua.html?evento="+encodeURIComponent(lista[0].id),"_blank","noopener");
+  }
+  /* ── EDITOR VISUAL DE DOCUMENTOS DE EXONERACION ─────────────────────────
+     Se edita como en Word. Por dentro se guarda el mismo formato de texto
+     que ya usa evento-acqua.html (no cambia nada para quien se inscribe). */
+  const WZ_DATOS=[["nombre","Nombre del evento"],["fecha","Fecha"],["horario","Horario"],["fecha_horario","Fecha y horario"],["lugar","Lugar"],["tipo","Tipo de actividad"],["competitivo","¿Es competitivo?"],["organizador","Organizador"],["valor","Valor de la inscripcion"],["seguridad","Medidas de seguridad"]];
+  const WZ_NOMBRES=Object.fromEntries(WZ_DATOS);
+  let waiverDraft=null, wzRange=null;
+  function normDoc(t){ return String(t||"").replace(/\r\n/g,"\n").split("\n").map(l=>l.trim()).filter(Boolean).join("\n"); }
+  function wzChip(key,def){
+    const k=String(key||"").toLowerCase(), known=Object.prototype.hasOwnProperty.call(WZ_NOMBRES,k);
+    const label=known?WZ_NOMBRES[k]:("Dato desconocido: "+k);
+    return `<span class="wz-chip${known?"":" is-bad"}" contenteditable="false" data-ph="${escapeHtml(k)}"${def!==undefined?` data-def="${escapeHtml(def)}"`:""} title="${known?"Se llena solo con el dato del evento. Toca para elegir que mostrar si el evento no lo tiene.":"Este dato no existe: revisa o borralo."}">${escapeHtml(label)}</span>`;
+  }
+  function wzInline(txt){
+    const chips=[];
+    const tok=String(txt).replace(/\{\{\s*([a-z_]+)\s*(?::([^}]*))?\}\}/gi,(m,k,d)=>{ chips.push(wzChip(k,d)); return "\u0000"+(chips.length-1)+"\u0000"; });
+    return escapeHtml(tok).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/\u0000(\d+)\u0000/g,(m,n)=>chips[Number(n)]);
+  }
+  function docToHtml(cuerpo){
+    const out=[]; let modo="";
+    const cerrar=()=>{ if(modo==="ul") out.push("</ul>"); else if(modo==="table") out.push("</tbody></table>"); modo=""; };
+    String(cuerpo||"").replace(/\r\n/g,"\n").split("\n").forEach(raw=>{
+      const l=raw.trim(); if(!l) return; let m;
+      if(l==="{{incluye}}"){ cerrar(); out.push(`<div class="wz-incluye" contenteditable="false">${icon("list")}<span><strong>Lista de lo que incluye el evento</strong><small>Se llena sola con lo que escribas en cada evento (seccion "Que incluye la inscripcion").</small></span></div>`); return; }
+      if(l[0]==="|"){ const cells=l.replace(/^\||\|$/g,"").split("|").map(c=>c.trim()); if(modo!=="table"){ cerrar(); out.push('<table class="wz-table"><tbody>'); modo="table"; } out.push("<tr>"+cells.map(c=>"<td>"+(wzInline(c)||"<br>")+"</td>").join("")+"</tr>"); return; }
+      if((m=l.match(/^(#{1,2})\s+(.*)$/))){ cerrar(); out.push(m[1].length===1?"<h4>"+wzInline(m[2])+"</h4>":"<h5>"+wzInline(m[2])+"</h5>"); return; }
+      if((m=l.match(/^-\s+(.*)$/))){ if(modo!=="ul"){ cerrar(); out.push("<ul>"); modo="ul"; } out.push("<li>"+wzInline(m[1])+"</li>"); return; }
+      cerrar(); out.push("<p>"+wzInline(l)+"</p>");
+    });
+    cerrar();
+    return out.join("")||"<p><br></p>";
+  }
+  function wzInlineOut(node){
+    let s="";
+    node.childNodes.forEach(n=>{
+      if(n.nodeType===3){ s+=n.nodeValue.replace(/ /g," ").replace(/\n/g," "); return; }
+      if(n.nodeType!==1) return;
+      const tag=n.tagName;
+      if(n.classList.contains("wz-chip")){ s+="{{"+n.dataset.ph+(n.dataset.def!==undefined?":"+n.dataset.def:"")+"}}"; return; }
+      if(tag==="BR"){ s+="\n"; return; }
+      const fw=n.style&&n.style.fontWeight;
+      const bold=tag==="B"||tag==="STRONG"||fw==="bold"||Number(fw)>=600;
+      const inner=wzInlineOut(n);
+      if(bold&&inner.trim()){ const lead=inner.match(/^\s*/)[0], trail=inner.match(/\s*$/)[0]; s+=lead+"**"+inner.trim().replace(/\*\*/g,"")+"**"+trail; }
+      else s+=inner;
+    });
+    return s;
+  }
+  function htmlToDoc(root){
+    const lines=[];
+    const pushPara=(txt,prefix="")=>txt.split("\n").map(t=>t.replace(/\s+/g," ").trim()).filter(Boolean).forEach(t=>lines.push(prefix+t));
+    root.childNodes.forEach(n=>{
+      if(n.nodeType===3){ pushPara(n.nodeValue); return; }
+      if(n.nodeType!==1) return;
+      const tag=n.tagName;
+      if(n.classList.contains("wz-incluye")){ lines.push(""); lines.push("{{incluye}}"); return; }
+      if(n.classList.contains("wz-chip")){ lines.push("{{"+n.dataset.ph+(n.dataset.def!==undefined?":"+n.dataset.def:"")+"}}"); return; }
+      if(tag==="H1"||tag==="H4"){ const t=wzInlineOut(n).replace(/\s+/g," ").trim(); if(t){ lines.push("# "+t); } return; }
+      if(/^H[2356]$/.test(tag)){ const t=wzInlineOut(n).replace(/\s+/g," ").trim(); if(t){ lines.push(""); lines.push("## "+t); } return; }
+      if(tag==="UL"||tag==="OL"){ n.querySelectorAll(":scope > li").forEach(li=>{ const t=wzInlineOut(li).replace(/\s+/g," ").trim(); if(t) lines.push("- "+t); }); return; }
+      if(tag==="TABLE"){ n.querySelectorAll("tr").forEach(tr=>{ const cells=[...tr.children].map(td=>wzInlineOut(td).replace(/\s+/g," ").replace(/\|/g,"/").trim()); if(cells.some(Boolean)) lines.push("| "+cells.join(" | ")+" |"); }); return; }
+      pushPara(wzInlineOut(n));
+    });
+    return lines.join("\n").replace(/\n{3,}/g,"\n\n").trim();
+  }
+  function splitPlantilla(t){ const p=String(t||"").split(/^\s*-{3}\s*declaracion\s*-{3}\s*$/im); return { cuerpo:p[0]||"", decl:(p[1]||"").trim().replace(/\s*\n\s*/g," ") }; }
+  function wzCurrentText(){
+    const ed=document.getElementById("wzEditor"), dc=document.getElementById("wzDecl");
+    if(!ed) return null;
+    const decl=(dc?dc.value:"").trim().replace(/\s*\n\s*/g," ");
+    return htmlToDoc(ed)+"\n\n---declaracion---\n"+decl+"\n";
+  }
+  function wzDirty(){ const t=wzCurrentText(); return t!==null && normDoc(t)!==normDoc(textoPlantilla(waiverEditId)); }
+  function renderWaiverEditor(){
+    if(plantillasCache===null&&!plantillasLoading) setTimeout(loadPlantillas,0);
+    const id=waiverEditId, custom=plantillasCache&&plantillasCache[id];
+    const estado=plantillasCache===null?"Cargando…":(custom?"Personalizado · guardado "+formatDateTime(custom.updatedAt):"Original (el que vino de fabrica)");
+    const uso=id==="travesia"?"Se usa en los eventos de tipo Travesia a nado.":"Se usa en todos los demas eventos.";
+    const btn=(k,t)=>'<button class="btn'+(id===k?" primary":"")+'" type="button" data-action="waiver-select" data-id="'+k+'">'+t+'</button>';
+    const base=splitPlantilla(textoPlantilla(id));
+    const draft=waiverDraft&&waiverDraft.id===id?waiverDraft:null;
+    const cuerpoHtml=draft?draft.html:docToHtml(base.cuerpo);
+    const decl=draft?draft.decl:base.decl;
+    const tb=(cmd,ic,label,extra="")=>`<button class="wz-btn" type="button" data-wz="${cmd}" title="${label}" ${extra}>${ic}<span>${label}</span></button>`;
+    return '<section class="panel" style="margin-top:16px">'+panelHead("Documentos de exoneracion de eventos","Lo que cambies aqui lo ven quienes se inscriban desde que guardes. Quienes ya firmaron conservan una copia del texto exacto que firmaron.","file")
+      +(plantillasError?'<div class="callout danger" style="margin-bottom:12px">'+escapeHtml(plantillasError)+'</div>':'')
+      +'<div class="wz-top"><div class="seg">'+btn("travesia","Travesia a nado")+btn("general","Eventos generales")+'</div><span class="wz-status"><span class="badge '+(custom?"info":"no-dot")+'">'+escapeHtml(estado)+'</span> '+uso+'</span><span class="wz-dirty" id="wzDirty" '+(draft?"":"hidden")+'>Cambios sin guardar</span></div>'
+      +'<div class="callout" style="margin:14px 0">'+icon("info")+'<span>Escribe y corrige como en Word. Los <span class="wz-chip wz-chip-demo">recuadros azules</span> son datos que se llenan solos con la informacion de cada evento (nombre, fecha, lugar…). Puedes moverlos, borrarlos o insertar nuevos con <strong>Insertar dato</strong>.</span></div>'
+      +'<form id="waiverForm" class="wz">'
+      +'<div class="wz-toolbar" role="toolbar" aria-label="Formato del documento">'
+      +  tb("h4",'<b class="wz-ic">T</b>',"Titulo")+tb("h5",'<b class="wz-ic sm">T</b>',"Subtitulo")+tb("p",'<b class="wz-ic xs">¶</b>',"Texto normal")
+      +  '<i class="wz-sep"></i>'+tb("bold",'<b class="wz-ic">B</b>',"Negrita")+tb("ul",icon("list"),"Lista")
+      +  '<i class="wz-sep"></i>'+tb("row-add",icon("plus"),"Fila de datos")+tb("row-del",icon("minus"),"Quitar fila")
+      +  '<i class="wz-sep"></i><details class="menu wz-ins"><summary class="wz-btn wz-btn-ins">'+icon("sparkles")+'<span>Insertar dato</span>'+icon("chevronRight")+'</summary><div class="menu-list">'
+      +     WZ_DATOS.map(([k,l])=>'<button type="button" data-wz-ins="'+k+'">'+icon("tag")+escapeHtml(l)+'</button>').join("")
+      +     '<hr><button type="button" data-wz-ins="incluye">'+icon("list")+'Lista de lo que incluye</button></div></details>'
+      +  '<span class="wz-undo">'+tb("undo",icon("undo"),"Deshacer")+'</span>'
+      +'</div>'
+      +'<div class="wz-paper"><div id="wzEditor" class="wz-editor" contenteditable="true" spellcheck="true" aria-label="Texto del documento">'+cuerpoHtml+'</div></div>'
+      +'<label class="field wz-decl">'+icon("check")+' Texto de la casilla que marca quien firma<textarea id="wzDecl" rows="3" placeholder="Ej: Declaro que he leido y entendido este documento…">'+escapeHtml(decl)+'</textarea></label>'
+      +'<div class="split-actions"><button class="btn ghost" type="button" data-action="waiver-restore">'+icon("refresh")+'Restaurar el original</button><button class="btn outline" type="button" data-action="waiver-preview">'+icon("eye")+'Ver como queda</button><button class="btn primary" type="submit">'+icon("save")+'Guardar cambios</button></div></form></section>';
+  }
+  function initDocEditor(){
+    const ed=document.getElementById("wzEditor"); if(!ed||ed.dataset.ready) return; ed.dataset.ready="1";
+    const form=ed.closest("form"), dc=document.getElementById("wzDecl"), dirtyEl=document.getElementById("wzDirty");
+    try{ document.execCommand("defaultParagraphSeparator",false,"p"); }catch(e){}
+    const saveDraft=()=>{ waiverDraft={id:waiverEditId,html:ed.innerHTML,decl:dc?dc.value:""}; if(dirtyEl) dirtyEl.hidden=!wzDirty(); };
+    const keepRange=()=>{ const sel=window.getSelection(); if(sel.rangeCount&&ed.contains(sel.getRangeAt(0).commonAncestorContainer)) wzRange=sel.getRangeAt(0).cloneRange(); };
+    const restoreRange=()=>{ const r=wzRange; ed.focus(); if(r){ const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(r); wzRange=r; } };
+    ed.addEventListener("input",saveDraft); if(dc) dc.addEventListener("input",saveDraft);
+    ["keyup","mouseup","focus"].forEach(ev=>ed.addEventListener(ev,keepRange));
+    ed.addEventListener("paste",e=>{ e.preventDefault(); const t=(e.clipboardData||window.clipboardData).getData("text/plain"); document.execCommand("insertText",false,t); });
+    ed.addEventListener("click",e=>{
+      const chip=e.target.closest(".wz-chip"); if(!chip||chip.dataset.ph==="incluye") return;
+      const nombre=WZ_NOMBRES[chip.dataset.ph]||chip.dataset.ph;
+      const v=window.prompt(`"${nombre}" se llena solo con el dato del evento.\n\nSi un evento NO tiene este dato, ¿que texto quieres mostrar en su lugar?\n(Dejalo vacio para que esa linea simplemente no aparezca.)`, chip.dataset.def||"");
+      if(v===null) return; if(v.trim()) chip.dataset.def=v.trim(); else delete chip.dataset.def; saveDraft();
+    });
+    const curBlock=()=>{ const sel=window.getSelection(); if(!sel.rangeCount) return null; let n=sel.getRangeAt(0).startContainer; while(n&&n!==ed&&n.parentNode!==ed) n=n.parentNode; return n&&n!==ed?n:null; };
+    const curRow=()=>{ const sel=window.getSelection(); if(!sel.rangeCount) return null; const n=sel.getRangeAt(0).startContainer; const el=n.nodeType===1?n:n.parentElement; return el&&el.closest&&ed.contains(el)?el.closest("tr"):null; };
+    const toolbar=form.querySelector(".wz-toolbar");
+    toolbar.addEventListener("mousedown",e=>{ if(e.target.closest("[data-wz],[data-wz-ins],summary")) e.preventDefault(); });
+    toolbar.addEventListener("click",e=>{
+      const b=e.target.closest("[data-wz]"), ins=e.target.closest("[data-wz-ins]");
+      if(b){
+        restoreRange(); const c=b.dataset.wz;
+        if(c==="bold") document.execCommand("bold");
+        else if(c==="ul") document.execCommand("insertUnorderedList");
+        else if(c==="undo") document.execCommand("undo");
+        else if(c==="h4"||c==="h5"||c==="p"){ const blk=curBlock(); if(blk&&(blk.tagName==="UL"||blk.tagName==="OL")) document.execCommand("insertUnorderedList"); document.execCommand("formatBlock",false,c); }
+        else if(c==="row-add"){
+          const tr=curRow();
+          if(tr){ const nr=document.createElement("tr"); nr.innerHTML=[...tr.children].map(()=>"<td><br></td>").join(""); tr.after(nr); const sel=window.getSelection(); const r=document.createRange(); r.setStart(nr.firstChild,0); r.collapse(true); sel.removeAllRanges(); sel.addRange(r); }
+          else { const blk=curBlock(); const t=document.createElement("table"); t.className="wz-table"; t.innerHTML="<tbody><tr><td>Dato</td><td><br></td></tr></tbody>"; if(blk) blk.after(t); else ed.appendChild(t); }
+        }
+        else if(c==="row-del"){ const tr=curRow(); if(!tr){ setToast("Pon el cursor dentro de la fila que quieres quitar."); return; } const tb=tr.closest("table"); tr.remove(); if(tb&&!tb.querySelector("tr")) tb.remove(); }
+        keepRange(); saveDraft(); return;
+      }
+      if(ins){
+        const k=ins.dataset.wzIns; ins.closest("details").removeAttribute("open"); restoreRange();
+        if(k==="incluye"){
+          if(ed.querySelector(".wz-incluye")){ setToast("La lista de lo que incluye ya esta en el documento."); return; }
+          const blk=curBlock(); const d=document.createElement("div"); d.innerHTML=docToHtml("{{incluye}}"); const node=d.firstChild; if(blk) blk.after(node); else ed.appendChild(node);
+        } else {
+          const tmp=document.createElement("span"); tmp.innerHTML=wzChip(k); const chip=tmp.firstChild;
+          const sel=window.getSelection(); let r=sel.rangeCount?sel.getRangeAt(0):null;
+          if(!r||!ed.contains(r.commonAncestorContainer)){ ed.lastElementChild?ed.lastElementChild.appendChild(chip):ed.appendChild(chip); }
+          else { r.deleteContents(); r.insertNode(chip); const sp=document.createTextNode(" "); chip.after(sp); r=document.createRange(); r.setStartAfter(sp); r.collapse(true); sel.removeAllRanges(); sel.addRange(r); }
+        }
+        keepRange(); saveDraft();
+      }
+    });
+  }
   async function guardarDocumentoForm(form){
-    const id=waiverEditId, ta=form.querySelector("textarea"), text=(ta?ta.value:"").replace(/\r\n/g,"\n");
-    if(text.trim().length<50){ setToast("El documento esta casi vacio. Escribe el texto completo o usa Restaurar el original."); return; }
+    const id=waiverEditId; const text=wzCurrentText();
+    if(text===null) return;
+    const {cuerpo}=splitPlantilla(text);
+    if(cuerpo.trim().length<50){ setToast("El documento esta casi vacio. Escribe el texto completo o usa Restaurar el original."); return; }
     if(text.length>60000){ setToast("El documento es demasiado largo (maximo 60.000 caracteres)."); return; }
     try{
-      if(text.trim()===PLANTILLAS_ORIGINALES[id].trim()){
+      if(normDoc(text)===normDoc(PLANTILLAS_ORIGINALES[id])){
         if(plantillasCache&&plantillasCache[id]){ if(!(await deleteRow("exoneracion_plantillas","id",id))) throw new Error("borrar"); delete plantillasCache[id]; }
         setToast("Este texto es igual al original: se usa el original.");
       } else {
@@ -1786,44 +2180,67 @@
         setToast("Documento guardado. Ya lo ven quienes se inscriban desde ahora.");
       }
     }catch(e){ console.error("guardarDocumento:",e); setToast("No se pudo guardar. Revisa tu conexion y que hayas corrido el SQL nuevo en Supabase."); return; }
-    render();
+    waiverDraft=null; render();
   }
   async function restaurarDocumento(){
     const id=waiverEditId;
-    if(!(plantillasCache&&plantillasCache[id])){ setToast("Ya estas usando el documento original."); return; }
+    if(!(plantillasCache&&plantillasCache[id])){
+      if(waiverDraft&&waiverDraft.id===id){ if(!window.confirm("Descartar los cambios que no has guardado?")) return; waiverDraft=null; render(); setToast("Cambios descartados."); return; }
+      setToast("Ya estas usando el documento original."); return;
+    }
     if(!window.confirm("Restaurar el documento original? Se pierden los cambios que guardaste en este documento.")) return;
     if(!(await deleteRow("exoneracion_plantillas","id",id))){ setToast("No se pudo restaurar. Revisa tu conexion e intenta de nuevo."); return; }
-    delete plantillasCache[id];
-    const ta=document.querySelector("#waiverForm textarea"); if(ta) ta.value=PLANTILLAS_ORIGINALES[id];
+    delete plantillasCache[id]; waiverDraft=null;
     setToast("Listo: se restauro el documento original."); render();
   }
-  function previewDocumento(){
-    const id=waiverEditId, esT=e=>e.tipo==="travesia";
-    const lista=state.events.filter(e=>id==="travesia"?esT(e):!esT(e)).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
-    if(!lista.length){ setToast(id==="travesia"?"Crea un evento de tipo Travesia a nado para ver como queda este documento.":"Crea un evento (que no sea Travesia) para ver como queda este documento."); return; }
-    window.open("https://app-acqua.netlify.app/evento-acqua.html?evento="+encodeURIComponent(lista[0].id),"_blank","noopener");
+
+  /* ── EDITOR VISUAL DE "QUE INCLUYE" ─────────────────────────────────── */
+  function inclParse(txt){
+    const groups=[]; let cur={title:"",items:[]};
+    String(txt||"").split(/\r?\n/).forEach(raw=>{ const line=raw.trim(); if(!line) return;
+      if(!/^[-•*]/.test(line)&&/:\s*$/.test(line)){ if(cur.items.length||cur.title) groups.push(cur); cur={title:line.replace(/:\s*$/,""),items:[]}; }
+      else cur.items.push(line.replace(/^[-•*]\s*/,"")); });
+    if(cur.items.length||cur.title) groups.push(cur);
+    return groups;
   }
-  function renderWaiverEditor(){
-    if(plantillasCache===null&&!plantillasLoading) setTimeout(loadPlantillas,0);
-    const id=waiverEditId, custom=plantillasCache&&plantillasCache[id];
-    const estado=plantillasCache===null?"Cargando…":(custom?"Personalizado · guardado "+formatDateTime(custom.updatedAt):"Original (el que vino de fabrica)");
-    const uso=id==="travesia"?"Se usa en los eventos de tipo Travesia a nado.":"Se usa en todos los demas eventos.";
-    const btn=(k,t)=>'<button class="btn'+(id===k?" primary":"")+'" type="button" data-action="waiver-select" data-id="'+k+'">'+t+'</button>';
-    return '<section class="panel" style="margin-top:16px"><div class="panel-header"><div><h3>Documentos de exoneracion de eventos</h3><p>Lo que cambies aqui lo ven quienes se inscriban desde que guardes. Quienes ya firmaron conservan una copia del texto exacto que firmaron.</p></div></div>'
-      +(plantillasError?'<div style="background:var(--danger-tint);border:1px solid var(--danger);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:.84rem;color:#9b1c20">'+escapeHtml(plantillasError)+'</div>':'')
-      +'<div class="toolbar" style="margin-bottom:10px">'+btn("travesia","Travesia a nado")+btn("general","Eventos generales")+'</div>'
-      +'<p style="font-size:.82rem;color:var(--muted);margin:0 0 6px"><strong>'+escapeHtml(estado)+'</strong> · '+uso+'</p>'
-      +'<details style="margin:8px 0 12px;font-size:.84rem"><summary style="cursor:pointer;font-weight:700">Como escribir el documento</summary><div style="padding:8px 2px;line-height:1.6;color:var(--ink-2)">'
-      +'Escribe como en un documento normal: cada linea es un parrafo.<br>'
-      +'<code># Titulo</code> · <code>## Subtitulo</code> · <code>- vineta</code> · <code>**negrita**</code> · una linea que empieza con <code>|</code> es una fila de tabla: <code>| Dato | {{valor}} |</code><br>'
-      +'<strong>Datos del evento que se llenan solos:</strong> <code>{{nombre}}</code> <code>{{fecha}}</code> <code>{{lugar}}</code> <code>{{horario}}</code> <code>{{fecha_horario}}</code> <code>{{tipo}}</code> <code>{{competitivo}}</code> <code>{{organizador}}</code> <code>{{valor}}</code> <code>{{seguridad}}</code><br>'
-      +'<code>{{incluye}}</code> (en su propia linea) pone la lista de lo que incluye el evento.<br>'
-      +'Si el evento no tiene ese dato, la linea completa se omite. Para que en su lugar salga un texto, escribelo asi: <code>{{valor:Por confirmar}}</code>.<br>'
-      +'La linea <code>---declaracion---</code> separa el documento del texto de la casilla de aceptar (lo que esta debajo de esa linea).<br>'
-      +'Si escribes mal un dato (por ejemplo <code>{{valorr}}</code>) se ve tal cual en el documento, para que lo notes con "Ver como queda".</div></details>'
-      +'<form id="waiverForm"><label class="field wide"><span>Texto del documento — '+(id==="travesia"?"Travesia a nado":"Eventos generales")+'</span>'
-      +'<textarea name="waiverText_'+id+'" rows="22" spellcheck="false">'+escapeHtml(textoPlantilla(id))+'</textarea></label>'
-      +'<div class="split-actions"><button class="btn ghost" type="button" data-action="waiver-restore">Restaurar el original</button><button class="btn" type="button" data-action="waiver-preview">'+icon("file")+'Ver como queda</button><button class="btn primary" type="submit">'+icon("save")+'Guardar cambios</button></div></form></section>';
+  function inclSerialize(box){
+    const out=[];
+    box.querySelectorAll(".incl-group").forEach(g=>{
+      const title=g.querySelector(".incl-title").value.trim().replace(/:+\s*$/,"");
+      const items=[...g.querySelectorAll(".incl-item input")].map(i=>i.value.trim()).filter(Boolean);
+      if(!title&&!items.length) return;
+      if(title) out.push(title+":");
+      items.forEach(i=>out.push("- "+i));
+    });
+    return out.join("\n");
+  }
+  function inclItemHtml(v){ return `<div class="incl-item"><span class="incl-dot"></span><input type="text" value="${escapeHtml(v)}" placeholder="Escribe un elemento (ej: Medalla conmemorativa)"><button type="button" class="incl-x" data-incl="del-item" title="Quitar" aria-label="Quitar elemento">${icon("x")}</button></div>`; }
+  function inclGroupHtml(g){ return `<div class="incl-group"><div class="incl-head"><input class="incl-title" type="text" value="${escapeHtml(g.title||"")}" placeholder="Titulo del grupo (opcional) — ej: Kit del participante"><button type="button" class="incl-x" data-incl="del-group" title="Quitar grupo" aria-label="Quitar grupo">${icon("trash")}</button></div><div class="incl-items">${(g.items.length?g.items:[""]).map(inclItemHtml).join("")}</div><button type="button" class="incl-add" data-incl="add-item">${icon("plus")}Agregar elemento</button></div>`; }
+  function initInclEditor(scope){
+    (scope||document).querySelectorAll('textarea[name="eventIncluye"]').forEach(ta=>{
+      let box=ta.parentElement.querySelector(".incl-editor");
+      if(!box){ box=document.createElement("div"); box.className="incl-editor"; ta.after(box); ta.hidden=true;
+        const sync=()=>{ ta.value=inclSerialize(box); };
+        box.addEventListener("input",sync);
+        box.addEventListener("click",e=>{
+          const b=e.target.closest("[data-incl]"); if(!b) return; e.preventDefault();
+          const a=b.dataset.incl, g=b.closest(".incl-group");
+          if(a==="add-item"){ g.querySelector(".incl-items").insertAdjacentHTML("beforeend",inclItemHtml("")); g.querySelector(".incl-item:last-child input").focus(); }
+          else if(a==="del-item"){ const it=b.closest(".incl-item"); if(g.querySelectorAll(".incl-item").length>1) it.remove(); else it.querySelector("input").value=""; }
+          else if(a==="del-group"){ if(box.querySelectorAll(".incl-group").length>1) g.remove(); else { g.querySelector(".incl-title").value=""; g.querySelector(".incl-items").innerHTML=inclItemHtml(""); } }
+          else if(a==="add-group"){ box.querySelector(".incl-groups").insertAdjacentHTML("beforeend",inclGroupHtml({title:"",items:[]})); box.querySelector(".incl-group:last-child .incl-title").focus(); }
+          sync();
+        });
+        box.addEventListener("keydown",e=>{
+          const inp=e.target; if(!(inp instanceof HTMLInputElement)) return;
+          const it=inp.closest(".incl-item");
+          if(e.key==="Enter"){ e.preventDefault(); if(it){ it.insertAdjacentHTML("afterend",inclItemHtml("")); it.nextElementSibling.querySelector("input").focus(); } else { const first=inp.closest(".incl-group").querySelector(".incl-item input"); if(first) first.focus(); } sync(); }
+          else if(e.key==="Backspace"&&it&&!inp.value){ const prev=it.previousElementSibling; if(prev){ e.preventDefault(); it.remove(); const pi=prev.querySelector("input"); pi.focus(); pi.setSelectionRange(pi.value.length,pi.value.length); sync(); } }
+        });
+      }
+      const groups=inclParse(ta.value);
+      box.innerHTML=`<div class="incl-groups">${(groups.length?groups:[{title:"",items:[]}]).map(inclGroupHtml).join("")}</div><button type="button" class="btn ghost incl-add-group" data-incl="add-group">${icon("plus")}Agregar grupo</button>`;
+    });
   }
   const EVENT_TIPOS=[["travesia","Travesía a nado"],["festival","Festival"],["clinica","Clínica"],["exhibicion","Exhibición"],["otro","Otro"]];
   const INCLUYE_TRAVESIA=["Kit del participante:","- Gorro de natación en tela","- Tula","- Botilito","- Toalla","- Medalla conmemorativa del evento",
@@ -1836,17 +2253,17 @@
     return '<label class="field wide">Nombre<input name="eventName" required placeholder="Travesia San Andres 2027" value="'+escapeHtml(v.name||"")+'"></label>'
       +'<label class="field">Fecha<input name="eventDate" type="date" required value="'+escapeHtml(v.date||"")+'"></label>'
       +'<label class="field">Lugar<input name="eventPlace" required placeholder="Piscina, ciudad..." value="'+escapeHtml(v.place||"")+'"></label>'
-      +'<div class="wide" style="border-top:1px solid var(--line-opaque);padding-top:12px"><strong style="font-size:.9rem">Se llena solo en la exoneracion que reciben por WhatsApp</strong></div>'
+      +'<div class="field-section">Se llena solo en la exoneracion de WhatsApp</div>'
       +'<label class="field">Horario<input name="eventHorario" placeholder="5:00 a. m. a 10:00 a. m." value="'+escapeHtml(v.horario||"")+'"></label>'
       +'<label class="field">Tipo de actividad<select name="eventTipo">'+tipoOpts+'</select></label>'
       +'<label class="field">¿Es competitivo?<select name="eventCompetitivo"><option value="No"'+((v.competitivo||"No")==="No"?" selected":"")+'>No</option><option value="Si"'+(v.competitivo==="Si"?" selected":"")+'>Sí</option></select></label>'
       +'<label class="field">Valor de la inscripcion<input name="eventValor" placeholder="$250.000" value="'+escapeHtml(v.valor||"")+'"></label>'
       +'<label class="field wide">Organizador<input name="eventOrganizador" placeholder="ACQUA NATACIÓN Escuela de Natación" value="'+escapeHtml(v.organizador||"")+'"></label>'
-      +'<label class="field wide">Que incluye la inscripcion<textarea name="eventIncluye" rows="7" placeholder="Un item por linea. Para agrupar, escribe un titulo que termine en dos puntos (ej. Kit del participante:)">'+escapeHtml(v.incluye||"")+'</textarea></label>'
+      +'<div class="field wide incl-field"><span>Que incluye la inscripcion <small style="font-weight:500;color:var(--muted)">· agrupa por temas (opcional) y agrega un elemento por renglon</small></span><textarea name="eventIncluye" rows="7" placeholder="Un item por linea. Para agrupar, escribe un titulo que termine en dos puntos (ej. Kit del participante:)">'+escapeHtml(v.incluye||"")+'</textarea></div>'
       +'<div class="wide"><button class="btn ghost" type="button" data-action="fill-includes-travesia">Usar la lista de la Travesia</button></div>';
   }
   function renderEventEditPanel(ev){
-    return '<section class="panel" style="border-left:4px solid var(--primary)"><div class="panel-header"><div><h3>Editar evento</h3><p>Lo que cambies aqui se actualiza solo en el formulario que reciben por WhatsApp.</p></div></div>'
+    return '<section class="panel is-edit">'+panelHead("Editar evento","Lo que cambies aqui se actualiza solo en el formulario que reciben por WhatsApp.","edit")
       +'<form id="eventEditForm" class="field-grid">'+renderEventFields(ev)
       +'<div class="split-actions wide"><button class="btn" type="button" data-action="cancel-edit-event">Cancelar</button><button class="btn primary" type="submit">'+icon("save")+'Guardar cambios</button></div></form></section>';
   }
@@ -1891,15 +2308,15 @@
       ["Alergias o condiciones medicas",d.notas],["Autoriza uso de imagen",d.imagen],
       ["Firmo",s.name?(s.name+(s.document?" - "+s.document:"")):""],["Fecha de firma",s.signedAt],
       ["Documento firmado",d.plantilla==="travesia"?"Travesia (completo)":d.plantilla==="general"?"General de eventos":""]].filter(r=>r[1]);
-    return '<div class="modal-backdrop" role="dialog" aria-modal="true" data-action="close-attendee-data"><div class="modal-panel"><div class="modal-header" style="position:sticky;top:0;z-index:1"><div><span class="eyebrow">Datos de inscripcion</span><h3>'+escapeHtml(info.name)+'</h3></div><button class="btn icon" type="button" title="Cerrar" data-action="close-attendee-data" style="color:#fff;background:rgba(255,255,255,.2)">'+icon("x")+'</button></div>'
-      +'<div style="padding:14px 20px 20px;display:grid;gap:2px">'+rows.map(r=>'<div style="display:flex;justify-content:space-between;gap:14px;border-bottom:1px solid var(--line);padding:8px 0;font-size:.88rem"><span style="color:var(--muted)">'+escapeHtml(r[0])+'</span><strong style="text-align:right;overflow-wrap:anywhere">'+escapeHtml(r[1])+'</strong></div>').join("")
+    return '<div class="modal-backdrop" role="dialog" aria-modal="true" data-action="close-attendee-data"><div class="modal-panel"><div class="modal-header" style="position:sticky;top:0;z-index:1"><div><span class="eyebrow">Datos de inscripcion</span><h3>'+escapeHtml(info.name)+'</h3></div><button class="btn icon" type="button" title="Cerrar" aria-label="Cerrar" data-action="close-attendee-data">'+icon("x")+'</button></div>'
+      +'<div style="padding:14px 20px 20px;display:grid;gap:2px">'+rows.map(r=>'<div class="kv"><span>'+escapeHtml(r[0])+'</span><strong>'+escapeHtml(r[1])+'</strong></div>').join("")
       +(d.texto_firmado?'<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:700;font-size:.88rem">Ver el documento que firmo</summary><p style="font-size:.76rem;color:var(--muted);margin:6px 0">Texto exacto que vio al firmar ('+(d.plantilla_origen==="personalizada"?"version personalizada":"version original")+').</p><pre style="white-space:pre-wrap;font-family:inherit;font-size:.8rem;line-height:1.5;background:var(--bg);border-radius:10px;padding:12px;max-height:50vh;overflow:auto;margin:0">'+escapeHtml(d.texto_firmado)+'</pre></details>':'')
       +'<div class="split-actions" style="margin-top:16px"><button class="btn primary" type="button" data-action="close-attendee-data">Cerrar</button></div>'
       +'</div></div></div>';
   }
   /* Solo protege lo que se esta escribiendo en un FORMULARIO (evento, alumno, pago...) para que la
      sincronizacion automatica no lo borre. Los buscadores NO cuentan: ahi la pantalla si debe refrescarse. */
-  function isTypingInApp(){ const el=document.activeElement; return !!(el&&/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)&&el.closest&&el.closest("#app form[id]")); }
+  function isTypingInApp(){ const el=document.activeElement; if(el&&el.isContentEditable&&el.closest&&el.closest("#app")) return true; return !!(el&&/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)&&el.closest&&el.closest("#app form[id]")); }
   function saveInternalEvent(form){
     const fd=new FormData(form);
     const name=String(fd.get("iEventName")||"").trim();
@@ -2253,13 +2670,16 @@
       }
 
       case "go-checkin": activeView="checkin"; render(); break;
+      case "filter-plan-anual": activeView="students"; studentFilters={search:"",plan:"anual",status:"all"}; render(); break;
+      case "go-expiring": activeView="expiring"; expiringFilter="all"; render(); window.scrollTo({top:0}); break;
+      case "expiring-filter": activeView="expiring"; expiringFilter=action.dataset.filter||"all"; render(); break;
       case "go-register": activeView="register"; render(); break;
       case "go-events":  activeView="events";  render(); break;
       case "go-reports": activeView="reports"; render(); break;
 
       case "share-register-link": {
         const regUrl="https://app-acqua.netlify.app/registro-acqua.html";
-        const regMsg="Hola! Para inscribirte en ACQUA NATACION por favor llena el formulario de registro en el siguiente enlace:\n\n"+regUrl+"\n\nCon esto quedas registrado en nuestro sistema y te asignamos tu codigo de carnet. Cualquier duda estamos a tu disposicion.";
+        const regMsg="Hola! Para inscribirte en ACQUA NATACION por favor llena el formulario de registro en el siguiente enlace:\n\n"+regUrl+"\n\nCon esto quedas registrado en nuestro sistema y te asignamos tu codigo de carnet.\n\nRecuerda: todos los planes tienen 30 dias de vigencia contados a partir de tu primera clase.\n\nCualquier duda estamos a tu disposicion.";
         window.open("https://wa.me/?text="+encodeURIComponent(regMsg),"_blank","noopener");
         break;
       }
@@ -2274,7 +2694,7 @@
         const stC=getStudent(id); if(!stC) break;
         const carnetUrl="https://app-acqua.netlify.app/carnet-acqua.html?alumno="+encodeURIComponent(stC.code);
         const rawC=String(stC.phone||"").trim(); const hasC=rawC.startsWith("+"); const digC=rawC.replace(/\D/g,""); let phoneC; if(hasC||digC.length>10){phoneC=digC;}else if(digC.length===10&&digC.startsWith("3")){phoneC="57"+digC;}else{phoneC=digC;}
-        const msgC="Hola "+stC.name.split(" ")[0]+"! Te enviamos tu carnet digital de ACQUA NATACION:\n\n"+carnetUrl+"\n\nAbre el enlace para ver tu carnet y guardarlo como imagen en tu celular. Con el codigo QR registras tu asistencia a clases.";
+        const msgC="Hola "+stC.name.split(" ")[0]+"! Te enviamos tu carnet digital de ACQUA NATACION:\n\n"+carnetUrl+"\n\nAbre el enlace para ver tu carnet y guardarlo como imagen en tu celular. Con el codigo QR registras tu asistencia a clases.\n\nRecuerda: tu plan tiene "+textoVigencia(stC.planType)+" de vigencia a partir de tu primera clase"+(()=>{ const v=calcularVencimiento(stC); return v?" (vence el "+new Intl.DateTimeFormat("es-CO",{day:"numeric",month:"long"}).format(v)+")":""; })()+".";
         if(phoneC) window.open("https://wa.me/"+phoneC+"?text="+encodeURIComponent(msgC),"_blank","noopener");
         else { navigator.clipboard?.writeText(carnetUrl).catch(()=>{}); setToast("Sin telefono. Enlace copiado: "+carnetUrl); }
         break;
@@ -2309,13 +2729,13 @@
       case "view-event":           activeView="events"; activeEventId=id; eventEditId=null; eventEnrollSearch=""; render(); break;
       case "back-events":          activeEventId=null; signatureDraft=null; eventEditId=null; attendeeDataDraft=null; eventEnrollSearch=""; render(); break;
       case "edit-event":           eventEditId=id; render(); break;
-      case "waiver-select": { const ta=document.querySelector("#waiverForm textarea"); if(ta&&ta.value.replace(/\r\n/g,"\n")!==textoPlantilla(waiverEditId)&&!window.confirm("Tienes cambios sin guardar. Cambiar de documento y perderlos?")) break; waiverEditId=(id==="general"?"general":"travesia"); render(); break; }
+      case "waiver-select": { const nuevo=(id==="general"?"general":"travesia"); if(nuevo===waiverEditId) break; if(wzDirty()&&!window.confirm("Tienes cambios sin guardar. Cambiar de documento y perderlos?")) break; waiverDraft=null; waiverEditId=nuevo; render(); break; }
       case "waiver-restore":       restaurarDocumento(); break;
       case "waiver-preview":       previewDocumento(); break;
       case "cancel-edit-event":    eventEditId=null; render(); break;
       case "duplicate-event":      duplicateEvent(id); break;
       case "preview-event-link":   window.open("https://app-acqua.netlify.app/evento-acqua.html?evento="+encodeURIComponent(id),"_blank","noopener"); break;
-      case "fill-includes-travesia": { const fm=action.closest("form"); const ta=fm&&fm.querySelector('[name="eventIncluye"]'); if(ta&&(!ta.value.trim()||window.confirm("Reemplazar lo que ya escribiste por la lista de la Travesia?"))){ ta.value=INCLUYE_TRAVESIA; const sel=fm.querySelector('[name="eventTipo"]'); if(sel) sel.value="travesia"; } break; }
+      case "fill-includes-travesia": { const fm=action.closest("form"); const ta=fm&&fm.querySelector('[name="eventIncluye"]'); if(ta&&(!ta.value.trim()||window.confirm("Reemplazar lo que ya escribiste por la lista de la Travesia?"))){ ta.value=INCLUYE_TRAVESIA; const sel=fm.querySelector('[name="eventTipo"]'); if(sel) sel.value="travesia"; initInclEditor(fm); } break; }
       case "view-attendee-data":   attendeeDataDraft={eventId:action.dataset.eventId,attendeeId:action.dataset.attendeeId}; render(); break;
       case "close-attendee-data":  if(action.classList.contains("modal-backdrop")&&event.target!==action) break; attendeeDataDraft=null; render(); break;
       case "enroll-event-pick":    enrollEventStudent(eventId,id); break;
@@ -2387,6 +2807,7 @@
     if(target.matches("[data-filter='checkin-search']")){ checkinSearch=target.value; debouncedPreserveFocus("[data-filter='checkin-search']"); return; }
     if(target.matches("[data-filter='cards-search']")){ cardSearch=target.value; debouncedPreserveFocus("[data-filter='cards-search']"); return; }
     if(target.matches("[data-filter='reports-search']")){ reportsSearch=target.value; debouncedPreserveFocus("[data-filter='reports-search']"); return; }
+    if(target.matches("[data-filter='expiring-search']")){ expiringSearch=target.value; debouncedPreserveFocus("[data-filter='expiring-search']"); return; }
     if(target.matches("[data-filter='event-enroll-search']")){ eventEnrollSearch=target.value; debouncedPreserveFocus("[data-filter='event-enroll-search']"); }
   });
 
@@ -2399,7 +2820,7 @@
     if(target.id==="importFile"&&target.files?.[0]){ importJson(target.files[0]); target.value=""; }
   });
 
-  globalMonth.addEventListener("change",event=>{ state.currentMonth=event.target.value||monthKey(new Date()); saveState(); render(); });
+  /* (el cambio de mes operativo se maneja en el listener "change" general) */
   window.addEventListener("beforeunload",()=>{ stopScanner(false); if(_cloudSaveTimer){ clearTimeout(_cloudSaveTimer); _cloudSaveTimer=null; cloudSave(); } });
 
   /* Boton flotante "volver arriba": aparece en cualquier vista despues de
@@ -2474,13 +2895,13 @@
       +"@media print{body{padding:0} .noprint{display:none!important} @page{size:270px 480px;margin:0}}"
       +"article{position:relative;width:270px;height:450px;border-radius:18px;overflow:hidden;flex-shrink:0}"
       +".bg{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}"
-      +".qr{position:absolute;top:25%;left:50%;transform:translateX(-50%);width:71%;border-radius:10px;overflow:hidden;background:#fff;line-height:0}"
+      +".qr{position:absolute;top:15%;left:50%;transform:translateX(-50%);width:71%;border-radius:10px;overflow:hidden;background:#fff;line-height:0}"
       +".qr svg{width:100%;height:auto;display:block}"
       +".nombre{position:absolute;top:71%;left:0;right:0;text-align:center;padding:0 8px;color:#0a2472;font-weight:800;letter-spacing:.04em;line-height:1.3}"
       +".n1,.n2{font-size:1.15rem;display:block}"
       +".cat{font-size:.78rem;font-weight:600;color:#1565c0;margin-top:3px;display:block}"
       +".cod{font-size:.68rem;font-weight:700;color:#0a2472;margin-top:3px;display:block;letter-spacing:.08em}"
-      +".dias{font-size:.68rem;font-weight:600;color:#0a2472;margin-top:3px;display:block}"
+      +".dias{font-size:.68rem;font-weight:600;color:#0a2472;margin:3px auto 0;display:block;max-width:150px}"
       +".fund{position:absolute;bottom:3%;left:0;right:0;text-align:center;font-size:.62rem;color:#6688bb;letter-spacing:.18em;font-weight:700}"
       +"button{padding:11px 28px;background:#0a2472;color:#fff;border:none;border-radius:12px;font-size:.95rem;font-weight:700;cursor:pointer}"
       +"</style></head><body>"
@@ -2492,7 +2913,7 @@
       +(apellidos?"<span class='n2'>"+apellidos+"</span>":"")
       +"<span class='cat'>"+cat+"</span>"
       +"<span class='cod'>"+student.code+"</span>"
-      +"<span class='dias'>Tienes "+diasVigenciaPlan(student.planType)+" dias para consumir tu plan</span>"
+      +"<span class='dias'>"+(diasVigenciaPlan(student.planType)>=365?"Vigencia: 1 año":"Vigencia: "+diasVigenciaPlan(student.planType)+" días")+"<br><span style='font-weight:500'>desde tu primera clase</span></span>"
       +"</div>"
       +"<span class='fund'>DESDE 2015</span>"
       +"</article>"
@@ -2557,6 +2978,13 @@
     setInterval(async ()=>{ if(isAuthenticated){ await syncFromCloud(); autoCheckMonth(); } },3_600_000);
   })();
 
+  /* Datos de solo lectura para el buscador rapido (Ctrl+K) de la navegacion */
+  window.acquaPalette={
+    ready:()=>isAuthenticated,
+    students:()=>state.students.map(st=>({ id:st.id, name:st.name, code:st.code, phone:st.phone||"", active:st.status==="active", remaining:remainingClasses(st), plan:PLAN_LABELS[st.planType]||"" })),
+    expiring:()=>isAuthenticated?expiringData().urgent:0
+  };
+
   /* CHECK-IN POR URL (?checkin=AC-0001) */
   (function handleUrlCheckin(){
     const params=new URLSearchParams(window.location.search);
@@ -2566,7 +2994,7 @@
     function showNotFound(code){
       const overlay=document.createElement("div");
       overlay.id="checkin-overlay";
-      overlay.innerHTML=`<div class="checkin-modal"><div style="font-size:3rem;margin-bottom:1rem">X</div><h2 class="checkin-name">Carnet no encontrado</h2><p class="checkin-code" style="margin-bottom:1rem">Codigo: ${escapeHtml(code)}</p><p style="color:var(--muted);font-size:.88rem;margin-bottom:1.5rem">Verifica que el alumno este registrado en el sistema.</p><button class="btn primary" style="width:100%;justify-content:center" onclick="document.getElementById('checkin-overlay').remove()">Cerrar</button></div><style>#checkin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(10px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}.checkin-modal{background:#fff;border-radius:24px;padding:2rem 1.5rem;max-width:360px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.28)}.checkin-name{font-size:1.4rem;font-weight:700;margin:0 0 4px}.checkin-code{font-size:.82rem;color:var(--muted)}</style>`;
+      overlay.innerHTML=`<div class="checkin-modal"><div class="checkin-top is-neutral"><div class="checkin-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5M12 16.5v.5"/></svg></div><h2 class="checkin-name">Carnet no encontrado</h2><p class="checkin-code">CODIGO: ${escapeHtml(code)}</p><svg class="wave" viewBox="0 0 400 34" preserveAspectRatio="none"><path d="M0 18 C70 2 130 34 200 18 S330 2 400 18 V34 H0Z" fill="#fff"/></svg></div><div class="checkin-body" style="margin-top:6px"><p style="color:var(--muted);font-size:.88rem;margin:0 0 16px">Verifica que el alumno este registrado en el sistema.</p></div><div class="checkin-actions"><button class="btn primary lg" onclick="document.getElementById('checkin-overlay').remove()">Cerrar</button></div></div>`;
       document.body.appendChild(overlay);
     }
     function tryFind(attemptsLeft){

@@ -195,6 +195,39 @@
     }
   }
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#071A3F">
+<style id="acqua-theme">/* Tema ACQUA "Agua premium" — capa visual unificada */
+:root{--a-navy:#071A3F;--a-blue:#1A56DB;--a-blue2:#2F6FEB;--a-blue3:#1240A8;--a-cyan:#22C3F0;--a-cyan2:#A5E8FB;--a-ink:#0A1A33;--a-ink2:#2E4160;--a-muted:#5A6B85;--a-line:#E2E9F2;--a-soft:#F6F9FD;--a-ok:#0E9F6E;
+--a-water:radial-gradient(120% 80% at 100% 0%,rgba(34,195,240,.45) 0%,rgba(34,195,240,0) 55%),radial-gradient(90% 90% at 0% 100%,rgba(47,111,235,.55) 0%,rgba(47,111,235,0) 60%),linear-gradient(150deg,#071A3F 0%,#0B2A63 55%,#1240A8 100%)}
+body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif !important;background:radial-gradient(900px 420px at 90% -10%,rgba(34,195,240,.16),transparent 60%),radial-gradient(700px 400px at -10% 110%,rgba(26,86,219,.08),transparent 60%),#F2F6FB !important;color:var(--a-ink);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit}
+@keyframes a-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes a-pop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+h1{font-family:'Bricolage Grotesque',sans-serif;font-size:1.4rem !important;font-weight:700 !important;color:var(--a-navy) !important;letter-spacing:-.02em !important}
+.card{border-radius:28px !important;border:1px solid var(--a-line);box-shadow:0 2px 6px rgba(10,26,51,.05),0 30px 60px -24px rgba(10,26,51,.3) !important;animation:a-rise .5s cubic-bezier(.22,1,.36,1)}
+.card-header{overflow:hidden;position:relative;background:var(--a-water) !important;padding:2rem 1.5rem 2.2rem !important}
+.card-header::before{content:"";position:absolute;right:-70px;top:-90px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(165,232,251,.3),transparent 65%)}
+.brand-logo{position:relative;display:block;width:170px;margin:0 auto 6px;filter:drop-shadow(0 4px 14px rgba(0,0,0,.25))}
+.brand-sub{position:relative;color:var(--a-cyan2) !important;font-weight:800;letter-spacing:.24em !important}
+.instruction{color:var(--a-muted) !important;font-weight:800 !important;letter-spacing:.14em !important;font-size:.72rem !important}
+.qr-wrap{border:0 !important;border-radius:22px !important;padding:14px !important;box-shadow:0 0 0 1px var(--a-line),0 14px 30px -14px rgba(10,26,51,.3);position:relative}
+.url-pill{background:rgba(26,86,219,.08) !important;color:var(--a-blue) !important;font-weight:700 !important}
+.method-badge{display:inline-flex;align-items:center;gap:6px;border-width:1px !important;padding:5px 11px !important}
+.method-badge i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.card-footer{background:var(--a-soft) !important;border-top-color:var(--a-line) !important}
+.lock-badge{color:var(--a-ok) !important}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:46px;font-weight:800 !important;padding:10px 22px !important}
+.btn svg{width:17px;height:17px}
+.btn-primary{background:linear-gradient(180deg,#2F6FEB,#1A56DB) !important;box-shadow:0 12px 26px -8px rgba(26,86,219,.65) !important}
+.btn-ghost{color:var(--a-blue) !important;border:1px solid #CBD6E4 !important}
+.note svg{width:18px;height:18px;flex:0 0 auto;margin-top:1px;color:var(--a-blue)}
+.note{display:flex;gap:8px;align-items:flex-start;color:var(--a-muted) !important;text-align:left !important;background:#fff;border:1px solid var(--a-line);border-radius:14px;padding:10px 14px}
+</style>
 </head>
 <body>
 
@@ -202,7 +235,7 @@
 
 <div class="card">
   <div class="card-header">
-    <div class="brand-name">ACQUA</div>
+    <img class="brand-logo" src="assets/logo-acqua-blanco.png" alt="ACQUA Natacion">
     <div class="brand-sub">Natación · Chía</div>
     <svg class="wave-divider" viewBox="0 0 340 24" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M0,12 C60,24 120,0 180,12 C240,24 300,0 340,12 L340,24 L0,24 Z" fill="#ffffff"/>
@@ -219,10 +252,10 @@
     <div class="url-pill">acquanatacion.com/pagar</div>
 
     <div class="methods">
-      <span class="method-badge m-nequi">💜 Nequi</span>
-      <span class="method-badge m-pse">🏦 PSE</span>
-      <span class="method-badge m-davi">🟠 Daviplata</span>
-      <span class="method-badge m-card">💳 Tarjeta</span>
+      <span class="method-badge m-nequi"><i></i>Nequi</span>
+      <span class="method-badge m-pse"><i></i>PSE</span>
+      <span class="method-badge m-davi"><i></i>Daviplata</span>
+      <span class="method-badge m-card"><i></i>Tarjeta</span>
     </div>
   </div>
 
@@ -242,11 +275,11 @@
 </div>
 
 <div class="controls">
-  <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
-  <button class="btn btn-ghost" onclick="descargarQR()">⬇️ Descargar QR</button>
+  <button class="btn btn-primary" onclick="window.print()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>Imprimir / Guardar PDF</button>
+  <button class="btn btn-ghost" onclick="descargarQR()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Descargar QR</button>
 </div>
 
-<p class="note">💡 Cuando Wompi active tu cuenta, actualiza la URL en el código si usas un dominio diferente.</p>
+<p class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>Cuando Wompi active tu cuenta, actualiza la URL en el código si usas un dominio diferente.</span></p>
 
 <script>
   const URL_PAGO = "https://app-acqua.netlify.app/pagar";

@@ -43,3 +43,10 @@
   for = "/evento-acqua.html"
   [headers.values]
     Cache-Control = "no-cache"
+
+# Rediseño nov-2026: la hoja de estilos tambien debe revisarse siempre,
+# para que el nuevo diseño llegue junto con el nuevo app.js.
+[[headers]]
+  for = "/styles.css"
+  [headers.values]
+    Cache-Control = "no-cache"
